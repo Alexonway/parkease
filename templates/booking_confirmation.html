@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+
+{% block title %}Digital Parking Pass — {{ booking.reference_code }} — {{ BRAND_NAME }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    @media print {
+        header, footer, aside, .no-print { display: none !important; }
+        body { background: white !important; color: black !important; padding: 0 !important; }
+        .ticket-card { box-shadow: none !important; border: 2px solid #000 !important; max-width: 100% !important; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bg-forest-950 text-white py-10 no-print border-b border-forest-900">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 text-center space-y-2">
+        <div class="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 mx-auto flex items-center justify-center font-bold text-xl">
+            ✓
+        </div>
+        <h1 class="font-classic text-3xl font-bold">Booking Confirmed & Bay Reserved</h1>
+        <p class="text-sm text-slate-300">Your digital pass is active. Optical laser scanners at the facility gate will recognize this QR code.</p>
+    </div>
+</div>
+
+<div class="max-w-2xl mx-auto px-4 sm:px-6 py-10">
+    
+    <!-- Action Bar (Print / Share / Cancel) -->
+    <div class="flex items-center justify-between mb-6 no-print">
+        <a href="{% url 'dashboard' %}" class="text-xs font-semibold text-slate-600 hover:text-forest-950 flex items-center gap-1">
+            &larr; Back to Dashboard
+        </a>
+        
+        <div class="flex items-center space-x-2">
+            <button onclick="window.print()" class="px-3.5 py-1.5 rounded-xl bg-forest-900 text-white hover:bg-forest-950 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                Print / Save PDF
+            </button>
+            
+            {% if booking.can_cancel %}
+                <form action="{% url 'booking_cancel' reference=booking.reference_code %}" method="POST" onsubmit="return confirm('Are you sure you wish to cancel this reservation and request full refund?');">
+                    {% csrf_token %}
+                    <button type="submit" class="px-3.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold transition-colors">
+                        Cancel Booking
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- The Digital Parking Pass Ticket Card -->
+    <div class="ticket-card bg-white rounded-3xl border-2 border-forest-900/20 overflow-hidden shadow-classic-lg relative">
+        
+        <!-- Ticket Header Band -->
+        <div class="bg-forest-950 text-white p-6 sm:p-8 flex items-center justify-between border-b border-forest-900">
+            <div>
+                <div class="flex items-center space-x-2">
+                    <span class="font-classic text-xl font-bold tracking-tight text-white">{{ BRAND_NAME }}</span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                </div>
+                <p class="text-[10px] tracking-widest uppercase font-semibold text-emerald-400 mt-0.5">Official Digital Gate Pass</p>
+            </div>
+            
+            <div class="text-right">
+                <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider {% if booking.status == 'confirmed' %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/30{% elif booking.status == 'checked_in' %}bg-sky-500/20 text-sky-300 border border-sky-500/30{% elif booking.status == 'completed' %}bg-slate-500/20 text-slate-300 border border-slate-500/30{% else %}bg-rose-500/20 text-rose-300 border border-rose-500/30{% endif %}">
+                    {{ booking.get_status_display }}
+                </span>
+                <p class="font-mono text-xs text-slate-300 font-bold mt-1">Ref: {{ booking.reference_code }}</p>
+            </div>
+        </div>
+
+        <!-- Ticket Body with QR Code & Facility Info -->
+        <div class="p-6 sm:p-8 space-y-6">
+            
+            <!-- QR Code Section -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-6 p-6 rounded-2xl bg-cream border border-slate-200">
+                <div class="text-center sm:text-left space-y-1">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Barrier Access Code</span>
+                    <h3 class="font-classic text-xl font-bold text-forest-950">Scan at Entry Gate</h3>
+                    <p class="text-xs text-slate-500 max-w-xs">
+                        Hold this QR code 4-6 inches from the optical sensor at the entrance barrier.
+                    </p>
+                    <div class="pt-2">
+                        <a href="{% url 'verify_ticket_ref' reference=booking.reference_code %}" target="_blank" class="text-xs font-semibold text-emerald-700 hover:underline">
+                            Inspect Live Gate Status &rarr;
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Verified Generated QR Code -->
+                <div class="p-3 bg-white rounded-2xl border-2 border-forest-900/10 shadow-xs shrink-0">
+                    {% if booking.qr_image_base64 %}
+                        <img src="{{ booking.qr_image_base64 }}" alt="Booking QR Code" class="w-36 h-36">
+                    {% else %}
+                        <div class="w-36 h-36 bg-slate-100 flex items-center justify-center text-xs text-slate-400">
+                            QR Code Ready
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Booking Specifications Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-2 text-xs">
+                <div class="space-y-0.5">
+                    <span class="text-slate-400 uppercase font-bold text-[10px]">Parking Facility</span>
+                    <p class="font-bold text-slate-900 text-sm">{{ booking.facility.name }}</p>
+                    <p class="text-slate-500 text-[11px]">{{ booking.facility.address }}</p>
+                </div>
+
+                <div class="space-y-0.5">
+                    <span class="text-slate-400 uppercase font-bold text-[10px]">Reserved Bay</span>
+                    <p class="font-mono font-bold text-forest-950 text-base">{{ booking.slot.slot_number }}</p>
+                    <p class="text-slate-500 text-[11px]">{{ booking.floor.floor_name|default:"Main Deck" }}</p>
+                </div>
+
+                <div class="space-y-0.5">
+                    <span class="text-slate-400 uppercase font-bold text-[10px]">Vehicle Registration</span>
+                    <p class="font-mono font-bold text-slate-900 text-base uppercase">{{ booking.vehicle_plate }}</p>
+                    <p class="text-slate-500 text-[11px]">{{ booking.vehicle_model|default:booking.get_vehicle_type_display }}</p>
+                </div>
+
+                <div class="space-y-0.5">
+                    <span class="text-slate-400 uppercase font-bold text-[10px]">Valid Entry Window</span>
+                    <p class="font-semibold text-slate-900">{{ booking.start_time|date:"M d, Y" }}</p>
+                    <p class="text-emerald-700 font-bold">{{ booking.start_time|date:"h:i A" }} onwards</p>
+                </div>
+
+                <div class="space-y-0.5">
+                    <span class="text-slate-400 uppercase font-bold text-[10px]">Valid Exit By</span>
+                    <p class="font-semibold text-slate-900">{{ booking.end_time|date:"M d, Y" }}</p>
+                    <p class="text-emerald-700 font-bold">{{ booking.end_time|date:"h:i A" }}</p>
+                </div>
+
+                <div class="space-y-0.5">
+                    <span class="text-slate-400 uppercase font-bold text-[10px]">Payment Status</span>
+                    <p class="font-bold text-emerald-700 text-sm">PAID {{ CURRENCY_SYMBOL }}{{ booking.total_price }}</p>
+                    <p class="text-slate-400 text-[10px] font-mono">{{ payment.transaction_id|default:"TXN_VERIFIED" }}</p>
+                </div>
+            </div>
+
+            <!-- Driver Identification Info -->
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80 text-xs flex flex-col sm:flex-row justify-between gap-2">
+                <div>
+                    <span class="text-slate-400 block text-[10px] uppercase font-semibold">Authorized Driver</span>
+                    <span class="font-bold text-slate-800">{{ booking.guest_name }} ({{ booking.guest_email }})</span>
+                </div>
+                <div class="sm:text-right">
+                    <span class="text-slate-400 block text-[10px] uppercase font-semibold">Security Helpline</span>
+                    <span class="font-bold text-forest-950">+91 1800-120-PARK</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Ticket Footer Tear-Off Border -->
+        <div class="bg-slate-100 p-4 border-t border-dashed border-slate-300 text-center text-[11px] text-slate-500">
+            Pass encrypted with SHA-256 token verification. Present to gate optical scanner or security staff upon entry.
+        </div>
+    </div>
+</div>
+{% endblock %}

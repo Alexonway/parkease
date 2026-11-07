@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block title %}About {{ BRAND_NAME }} — Classic & Reliable Urban Mobility{% endblock %}
+
+{% block content %}
+<div class="bg-forest-950 text-white py-16 border-b border-forest-900">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 text-center space-y-3">
+        <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Our Heritage & Mission</span>
+        <h1 class="font-classic text-4xl sm:text-5xl font-bold">Smart Parking Without The Friction</h1>
+        <p class="text-slate-300 text-base max-w-2xl mx-auto leading-relaxed">
+            Eliminating urban parking congestion through guaranteed digital reservations, transparent tariffs, and seamless contactless gate access.
+        </p>
+    </div>
+</div>
+
+<div class="max-w-5xl mx-auto px-4 sm:px-6 py-16 space-y-16">
+    
+    <!-- Core Story Section -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+        <div class="space-y-4">
+            <span class="text-xs font-bold uppercase tracking-wider text-emerald-600">The Problem We Solve</span>
+            <h2 class="font-classic text-3xl font-bold text-forest-950">No more circling the block.</h2>
+            <p class="text-sm text-slate-600 leading-relaxed">
+                Urban studies show that up to 30% of metropolitan traffic congestion is caused by drivers searching for an available parking space.
+            </p>
+            <p class="text-sm text-slate-600 leading-relaxed">
+                {{ BRAND_NAME }} transforms that experience into a calm, guaranteed routine. By connecting municipal and private garages with a unified, real-time availability engine, drivers reserve their specific bay in advance, receive a scannable optical pass, and drive straight in.
+            </p>
+        </div>
+
+        <div class="rounded-3xl overflow-hidden border border-slate-200 shadow-classic">
+            <img src="https://images.unsplash.com/photo-1590674899484-d5640e854abe?auto=format&fit=crop&w=1000&q=80" 
+                 alt="Architectural EV Garage" class="w-full h-80 object-cover">
+        </div>
+    </div>
+
+    <!-- Guarantees & Pillars -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="p-8 rounded-3xl bg-white border border-slate-200 shadow-classic space-y-3">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xl">
+                ✓
+            </div>
+            <h3 class="font-classic text-xl font-bold text-forest-950">Guaranteed Space</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+                When you reserve a bay with {{ BRAND_NAME }}, that physical space is locked in our server cluster. No overbooking, no compromises.
+            </p>
+        </div>
+
+        <div class="p-8 rounded-3xl bg-white border border-slate-200 shadow-classic space-y-3">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xl">
+                ⚡
+            </div>
+            <h3 class="font-classic text-xl font-bold text-forest-950">EV Infrastructure</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+                Accelerating electric adoption by providing verified ultra-fast charging bays (CCS2, Type 2, Tesla) with power metrics.
+            </p>
+        </div>
+
+        <div class="p-8 rounded-3xl bg-white border border-slate-200 shadow-classic space-y-3">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xl">
+                🛡
+            </div>
+            <h3 class="font-classic text-xl font-bold text-forest-950">Transparent Tariffs</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+                Every charge is itemized before payment. No hidden exit charges or sudden surge multipliers when pulling out of the garage.
+            </p>
+        </div>
+    </div>
+
+    <!-- Technical Architecture & Privacy -->
+    <div class="p-8 sm:p-10 rounded-3xl bg-forest-950 text-white border border-forest-900 space-y-6">
+        <div class="max-w-2xl">
+            <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Security Architecture</span>
+            <h3 class="font-classic text-2xl sm:text-3xl font-bold mt-1">Built With Server-Side Verification</h3>
+            <p class="text-xs text-slate-300 mt-2 leading-relaxed">
+                {{ BRAND_NAME }} is built on Python and Django. Every QR code pass contains a secure cryptographic reference verified directly against our database to prevent ticket duplication. Sensitive cardholder credentials are never stored on local servers.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-slate-300 pt-2 border-t border-forest-900">
+            <div>
+                <p class="font-bold text-white">Idempotent Transactions</p>
+                <p class="text-[11px] text-slate-400">Database concurrency locks prevent dual reservations on the same slot.</p>
+            </div>
+            <div>
+                <p class="font-bold text-white">Privacy Safeguards</p>
+                <p class="text-[11px] text-slate-400">Personal phone numbers and emails are not embedded in plain text inside the QR payload.</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block title %}403 Forbidden — Access Denied — {{ BRAND_NAME }}{% endblock %}
+
+{% block content %}
+<div class="min-h-[70vh] flex items-center justify-center py-16 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-lg w-full bg-white rounded-3xl p-8 sm:p-10 border-2 border-rose-200 shadow-classic text-center space-y-6">
+        
+        <!-- Security Shield Icon -->
+        <div class="w-20 h-20 rounded-3xl bg-rose-50 border-2 border-rose-200 text-rose-600 mx-auto flex items-center justify-center font-bold shadow-inner">
+            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+            </svg>
+        </div>
+
+        <div class="space-y-2">
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-100 text-rose-800">
+                Security Alert • 403 Forbidden
+            </span>
+            <h1 class="font-classic text-2xl sm:text-3xl font-bold text-forest-950">
+                Restricted Administrator Area
+            </h1>
+            <p class="text-sm text-slate-600 leading-relaxed max-w-sm mx-auto">
+                Access to the <strong>Executive Operations Console</strong> and <strong>Gate Barrier Controllers</strong> is strictly restricted to verified facility staff and administrators.
+            </p>
+        </div>
+
+        <!-- Current User Role Diagnostic Box -->
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-left space-y-1.5">
+            <div class="flex justify-between">
+                <span class="text-slate-500 font-semibold">Active Session:</span>
+                <span class="font-bold text-slate-800">{{ request.user.username }} ({{ request.user.email }})</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-slate-500 font-semibold">Account Role:</span>
+                <span class="font-semibold text-rose-600 uppercase font-mono">
+                    {{ request.user.profile.get_role_display|default:"Customer / Driver" }}
+                </span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-slate-500 font-semibold">Authorization Status:</span>
+                <span class="font-semibold text-rose-600">INSUFFICIENT CLEARANCE</span>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="space-y-2.5 pt-2">
+            <a href="{% url 'dashboard' %}" class="w-full py-3.5 px-4 rounded-xl bg-forest-900 hover:bg-forest-950 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-xs">
+                <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                Return to My Driver Dashboard
+            </a>
+
+            <div class="grid grid-cols-2 gap-2 text-xs">
+                <a href="{% url 'home' %}" class="py-2.5 px-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium transition-colors">
+                    Back to Homepage
+                </a>
+                <a href="{% url 'admin_login' %}" class="py-2.5 px-3 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-800 font-medium transition-colors">
+                    Admin Sign-In
+                </a>
+            </div>
+        </div>
+
+        <p class="text-[11px] text-slate-400">
+            All unauthorized administrative access attempts are audited and logged with IP timestamp.
+        </p>
+
+    </div>
+</div>
+{% endblock %}

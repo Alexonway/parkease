@@ -1,0 +1,241 @@
+{% extends 'base.html' %}
+
+{% block title %}Driver Dashboard — {{ BRAND_NAME }}{% endblock %}
+
+{% block content %}
+<div class="bg-forest-950 text-white py-10 border-b border-forest-900">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Driver Console</span>
+                <h1 class="font-classic text-3xl font-bold mt-1">Welcome back, {{ request.user.first_name|default:request.user.username }}</h1>
+                <p class="text-xs text-slate-300 mt-1">Manage reserved bays, digital tickets, and mobility rewards.</p>
+            </div>
+
+            <!-- Loyalty Status Card -->
+            <div class="p-4 rounded-2xl bg-forest-900/90 border border-forest-800 text-right flex items-center space-x-4">
+                <div>
+                    <span class="text-[10px] uppercase font-bold text-slate-400">Loyalty Status</span>
+                    <p class="font-classic text-lg font-bold text-emerald-400">{{ profile.loyalty_tier }}</p>
+                </div>
+                <div class="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm font-bold font-mono">
+                    {{ profile.loyalty_points }} pts
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <!-- Top Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
+        <div class="p-6 rounded-3xl bg-white border border-slate-200 shadow-classic flex items-center justify-between">
+            <div>
+                <span class="text-xs uppercase font-bold text-slate-400">Active Bookings</span>
+                <p class="font-classic text-3xl font-bold text-forest-950 mt-1">{{ active_bookings.count }}</p>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                🅿
+            </div>
+        </div>
+
+        <div class="p-6 rounded-3xl bg-white border border-slate-200 shadow-classic flex items-center justify-between">
+            <div>
+                <span class="text-xs uppercase font-bold text-slate-400">Total Spent</span>
+                <p class="font-classic text-3xl font-bold text-forest-950 mt-1">{{ CURRENCY_SYMBOL }}{{ total_spent|floatformat:2 }}</p>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold">
+                {{ CURRENCY_SYMBOL }}
+            </div>
+        </div>
+
+        <div class="p-6 rounded-3xl bg-white border border-slate-200 shadow-classic flex items-center justify-between">
+            <div>
+                <span class="text-xs uppercase font-bold text-slate-400">Saved Favorites</span>
+                <p class="font-classic text-3xl font-bold text-forest-950 mt-1">{{ favorites.count }}</p>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center font-bold">
+                ♥
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Reservations Section -->
+    <div class="space-y-6 mb-12">
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="font-classic text-2xl font-bold text-forest-950">Active & Upcoming Reservations</h2>
+                <p class="text-xs text-slate-500">Present your digital pass QR code at the facility barrier.</p>
+            </div>
+            <a href="{% url 'facilities' %}" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors shadow-xs">
+                + Book New Slot
+            </a>
+        </div>
+
+        {% if active_bookings %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {% for b in active_bookings %}
+                    <div class="bg-white rounded-3xl border border-slate-200 shadow-classic overflow-hidden flex flex-col justify-between">
+                        <div class="p-6 space-y-4">
+                            <div class="flex items-center justify-between">
+                                <span class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    {{ b.get_status_display }}
+                                </span>
+                                <span class="font-mono text-xs font-bold text-slate-500">Ref: {{ b.reference_code }}</span>
+                            </div>
+
+                            <div class="flex items-center space-x-3">
+                                <img src="{{ b.facility.image_url }}" alt="{{ b.facility.name }}" class="w-14 h-14 rounded-xl object-cover">
+                                <div>
+                                    <h3 class="font-bold text-base text-slate-900">{{ b.facility.name }}</h3>
+                                    <p class="text-xs text-slate-500">{{ b.facility.address }}</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2 p-3 bg-slate-50 rounded-xl text-xs">
+                                <div>
+                                    <span class="text-slate-400 block text-[10px] uppercase font-semibold">Bay & Level</span>
+                                    <span class="font-mono font-bold text-forest-950">{{ b.slot.slot_number }} ({{ b.floor.floor_name }})</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px] uppercase font-semibold">Vehicle Plate</span>
+                                    <span class="font-mono font-bold text-slate-900 uppercase">{{ b.vehicle_plate }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px] uppercase font-semibold">Valid From</span>
+                                    <span class="font-semibold text-slate-800">{{ b.start_time|date:"M d, h:i A" }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px] uppercase font-semibold">Valid Until</span>
+                                    <span class="font-semibold text-slate-800">{{ b.end_time|date:"M d, h:i A" }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                            <span class="text-xs font-bold text-forest-950">Paid: {{ CURRENCY_SYMBOL }}{{ b.total_price }}</span>
+                            <div class="flex items-center space-x-2">
+                                <a href="{% url 'booking_confirmation' reference=b.reference_code %}" class="px-4 py-2 rounded-xl bg-forest-900 text-white hover:bg-forest-950 text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-xs">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                                    View Digital Pass
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="p-8 text-center bg-white rounded-3xl border border-slate-200 text-slate-500">
+                <p class="text-sm">You have no active parking bookings right now.</p>
+                <a href="{% url 'facilities' %}" class="mt-3 inline-block px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-semibold">Find a Parking Spot</a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Booking History & Profile Settings Split -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- Left: Past Bookings & Rewards History -->
+        <div class="lg:col-span-7 space-y-8">
+            <!-- Completed History -->
+            <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-classic space-y-4">
+                <h3 class="font-classic text-xl font-bold text-forest-950">Completed Parking Sessions</h3>
+                
+                {% if completed_bookings or cancelled_bookings %}
+                    <div class="divide-y divide-slate-100 text-xs">
+                        {% for b in completed_bookings %}
+                            <div class="py-3.5 flex items-center justify-between">
+                                <div>
+                                    <p class="font-bold text-slate-800">{{ b.facility.name }}</p>
+                                    <p class="text-slate-400">{{ b.start_time|date:"M d, Y" }} • Slot {{ b.slot.slot_number }}</p>
+                                </div>
+                                <div class="text-right">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">Completed</span>
+                                    <p class="font-bold text-slate-800 mt-1">{{ CURRENCY_SYMBOL }}{{ b.total_price }}</p>
+                                </div>
+                            </div>
+                        {% endfor %}
+
+                        {% for b in cancelled_bookings %}
+                            <div class="py-3.5 flex items-center justify-between opacity-70">
+                                <div>
+                                    <p class="font-bold text-slate-800">{{ b.facility.name }}</p>
+                                    <p class="text-slate-400">{{ b.start_time|date:"M d, Y" }} • {{ b.cancellation_reason|default:"Cancelled" }}</p>
+                                </div>
+                                <div class="text-right">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700">Refunded</span>
+                                    <p class="font-bold text-slate-800 mt-1">{{ CURRENCY_SYMBOL }}{{ b.total_price }}</p>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-xs text-slate-400 italic">No past sessions recorded yet.</p>
+                {% endif %}
+            </div>
+
+            <!-- Rewards Points Ledger -->
+            <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-classic space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-classic text-xl font-bold text-forest-950">Loyalty Rewards Ledger</h3>
+                    <span class="text-xs text-emerald-700 font-bold">{{ profile.loyalty_points }} Available Points</span>
+                </div>
+
+                <div class="divide-y divide-slate-100 text-xs">
+                    {% for rw in rewards %}
+                        <div class="py-3 flex items-center justify-between">
+                            <div>
+                                <p class="font-semibold text-slate-800">{{ rw.action }}</p>
+                                <p class="text-slate-400">{{ rw.description }} • {{ rw.created_at|date:"M d, Y" }}</p>
+                            </div>
+                            <span class="font-mono font-bold {% if rw.points > 0 %}text-emerald-600{% else %}text-rose-600{% endif %}">
+                                {{ rw.points:+d }} pts
+                            </span>
+                        </div>
+                    {% empty %}
+                        <p class="text-xs text-slate-400 italic">No reward entries yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Profile & Default Vehicle Form -->
+        <div class="lg:col-span-5 space-y-6">
+            <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-classic">
+                <h3 class="font-classic text-xl font-bold text-forest-950 pb-3 border-b border-slate-100 mb-4">
+                    Vehicle & Account Profile
+                </h3>
+
+                <form method="POST" class="space-y-4">
+                    {% csrf_token %}
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">First Name</label>
+                        <input type="text" name="first_name" value="{{ request.user.first_name }}" class="form-input">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Last Name</label>
+                        <input type="text" name="last_name" value="{{ request.user.last_name }}" class="form-input">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Mobile Contact</label>
+                        <input type="text" name="phone" value="{{ profile.phone }}" class="form-input">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Default License Plate</label>
+                        <input type="text" name="vehicle_plate" value="{{ profile.vehicle_plate }}" class="form-input uppercase font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Vehicle Model</label>
+                        <input type="text" name="vehicle_model" value="{{ profile.vehicle_model }}" class="form-input">
+                    </div>
+                    
+                    <button type="submit" name="update_profile" class="w-full py-3 rounded-xl bg-forest-900 text-white font-semibold text-xs hover:bg-forest-950 transition-colors shadow-xs">
+                        Save Profile Details
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

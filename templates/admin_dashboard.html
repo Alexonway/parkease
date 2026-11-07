@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+
+{% block title %}Administrator Operations Console — {{ BRAND_NAME }}{% endblock %}
+
+{% block content %}
+<div class="bg-forest-950 text-white py-10 border-b border-forest-900">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <div class="inline-flex items-center space-x-2 px-2.5 py-1 rounded bg-forest-900 border border-forest-800 text-emerald-400 text-xs font-semibold">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    <span>ENTERPRISE OPERATOR PORTAL</span>
+                </div>
+                <h1 class="font-classic text-3xl font-bold mt-2">Executive Operations Console</h1>
+                <p class="text-xs text-slate-300 mt-1">Real-time facility occupancy monitoring, revenue settlement, and gate barrier control.</p>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <a href="{% url 'verify_ticket' %}" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                    Launch Gate Scanner
+                </a>
+                <a href="{% url 'admin_logout' %}" class="px-3.5 py-2 rounded-xl bg-forest-900 hover:bg-rose-900 text-slate-300 hover:text-white text-xs font-semibold border border-forest-800 transition-colors flex items-center gap-1.5 shadow-sm">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    End Operator Session
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
+    
+    <!-- KPI Overview Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-classic">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Revenue</span>
+            <p class="font-classic text-3xl font-bold text-forest-950 mt-2">{{ CURRENCY_SYMBOL }}{{ total_revenue|floatformat:2 }}</p>
+            <p class="text-[11px] text-emerald-600 mt-1 font-semibold">100% verified settlements</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-classic">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Network Occupancy</span>
+            <p class="font-classic text-3xl font-bold text-emerald-600 mt-2">{{ occupancy_rate }}%</p>
+            <p class="text-[11px] text-slate-500 mt-1">{{ occupied_slots }} / {{ total_slots }} bays occupied</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-classic">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Facilities</span>
+            <p class="font-classic text-3xl font-bold text-forest-950 mt-2">{{ total_facilities }}</p>
+            <p class="text-[11px] text-slate-500 mt-1">Multi-level garages & hubs</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-classic">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Recent Bookings</span>
+            <p class="font-classic text-3xl font-bold text-forest-950 mt-2">{{ all_bookings.count }}</p>
+            <p class="text-[11px] text-slate-500 mt-1">Digital passes generated</p>
+        </div>
+    </div>
+
+    <!-- Live Bookings Real-time Feed -->
+    <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-classic space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-2">
+            <div>
+                <h3 class="font-classic text-xl font-bold text-forest-950">Recent Driver Bookings & Gate Passes</h3>
+                <p class="text-xs text-slate-400">Live operational stream across all partner garages</p>
+            </div>
+            <span class="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200">
+                SYSTEM OPERATIONAL
+            </span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead>
+                    <tr class="text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-3">
+                        <th class="py-3 font-semibold">Ref Code</th>
+                        <th class="py-3 font-semibold">Driver</th>
+                        <th class="py-3 font-semibold">Facility & Bay</th>
+                        <th class="py-3 font-semibold">Vehicle Plate</th>
+                        <th class="py-3 font-semibold">Window</th>
+                        <th class="py-3 font-semibold">Tariff</th>
+                        <th class="py-3 font-semibold">Status</th>
+                        <th class="py-3 font-semibold text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
+                    {% for b in all_bookings %}
+                        <tr class="hover:bg-slate-50/80 transition-colors">
+                            <td class="py-3.5 font-mono font-bold text-forest-950">
+                                {{ b.reference_code }}
+                            </td>
+                            <td class="py-3.5">
+                                <span class="font-bold text-slate-800">{{ b.guest_name }}</span>
+                                <span class="block text-[11px] text-slate-400">{{ b.guest_email }}</span>
+                            </td>
+                            <td class="py-3.5">
+                                <span class="font-semibold text-slate-800">{{ b.facility.name }}</span>
+                                <span class="block text-[11px] text-emerald-700 font-mono font-bold">Bay {{ b.slot.slot_number }}</span>
+                            </td>
+                            <td class="py-3.5 font-mono font-bold text-slate-900 uppercase">
+                                {{ b.vehicle_plate }}
+                            </td>
+                            <td class="py-3.5 text-[11px] text-slate-500">
+                                {{ b.start_time|date:"M d, h:i A" }}
+                            </td>
+                            <td class="py-3.5 font-bold text-slate-900">
+                                {{ CURRENCY_SYMBOL }}{{ b.total_price }}
+                            </td>
+                            <td class="py-3.5">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase {% if b.status == 'confirmed' %}bg-emerald-50 text-emerald-700 border border-emerald-200{% elif b.status == 'checked_in' %}bg-sky-50 text-sky-700 border border-sky-200{% elif b.status == 'completed' %}bg-slate-100 text-slate-600{% else %}bg-rose-50 text-rose-700 border border-rose-200{% endif %}">
+                                    {{ b.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="py-3.5 text-right">
+                                <a href="{% url 'verify_ticket_ref' reference=b.reference_code %}" class="px-2.5 py-1 rounded-lg bg-forest-900 text-white hover:bg-forest-950 text-[11px] font-semibold transition-colors">
+                                    Gate Check &rarr;
+                                </a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-6 text-slate-400 italic">No bookings recorded yet.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Facility Management & Add New Facility Form -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <!-- Managed Facilities List -->
+        <div class="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-classic space-y-4">
+            <h3 class="font-classic text-xl font-bold text-forest-950 border-b border-slate-100 pb-3">
+                Managed Facilities
+            </h3>
+
+            <div class="divide-y divide-slate-100 text-xs">
+                {% for f in facilities %}
+                    <div class="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div class="flex items-center space-x-3">
+                            <img src="{{ f.image_url }}" alt="{{ f.name }}" class="w-12 h-12 rounded-xl object-cover">
+                            <div>
+                                <h4 class="font-bold text-sm text-slate-900">{{ f.name }}</h4>
+                                <p class="text-slate-400">{{ f.city }} • {{ CURRENCY_SYMBOL }}{{ f.hourly_rate }}/hr • {{ f.slots.count }} Total Bays</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center space-x-2">
+                            <span class="px-2.5 py-1 rounded text-[10px] font-bold {% if f.is_active %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-rose-50 text-rose-700 border border-rose-200{% endif %}">
+                                {% if f.is_active %}Active & Live{% else %}Deactivated{% endif %}
+                            </span>
+                            <a href="{% url 'facility_detail' slug=f.slug %}" class="px-3 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] transition-colors">
+                                View Layout
+                            </a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Add Facility Form -->
+        <div class="lg:col-span-5 bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-classic space-y-4">
+            <h3 class="font-classic text-xl font-bold text-forest-950 border-b border-slate-100 pb-3">
+                Register New Parking Facility
+            </h3>
+
+            <form method="POST" class="space-y-3 text-xs">
+                {% csrf_token %}
+                <div>
+                    <label class="block font-bold uppercase text-slate-600 mb-1">Facility Name *</label>
+                    {{ facility_form.name }}
+                </div>
+                <div>
+                    <label class="block font-bold uppercase text-slate-600 mb-1">URL Identifier (Slug) *</label>
+                    {{ facility_form.slug }}
+                </div>
+                <div>
+                    <label class="block font-bold uppercase text-slate-600 mb-1">Address *</label>
+                    {{ facility_form.address }}
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold uppercase text-slate-600 mb-1">City *</label>
+                        {{ facility_form.city }}
+                    </div>
+                    <div>
+                        <label class="block font-bold uppercase text-slate-600 mb-1">Hourly Tariff ($) *</label>
+                        {{ facility_form.hourly_rate }}
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-bold uppercase text-slate-600 mb-1">Hero Image URL</label>
+                    {{ facility_form.image_url }}
+                </div>
+                <div>
+                    <label class="block font-bold uppercase text-slate-600 mb-1">Amenities (Comma-separated)</label>
+                    {{ facility_form.amenities_text }}
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit" name="create_facility" class="w-full py-3 rounded-xl bg-forest-900 text-white font-semibold text-xs hover:bg-forest-950 transition-colors shadow-xs">
+                        Create Facility & Auto-Provision Bays
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

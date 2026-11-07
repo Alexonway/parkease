@@ -1,0 +1,388 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ facility.name }} — Reserve Slot — {{ BRAND_NAME }}{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb Header -->
+<div class="bg-forest-950 text-white py-8 border-b border-forest-900">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+            <div>
+                <div class="flex items-center space-x-2 text-xs text-slate-400 mb-2">
+                    <a href="{% url 'home' %}" class="hover:text-emerald-400">Home</a>
+                    <span>/</span>
+                    <a href="{% url 'facilities' %}" class="hover:text-emerald-400">Facilities</a>
+                    <span>/</span>
+                    <span class="text-slate-200">{{ facility.city }}</span>
+                </div>
+                <h1 class="font-classic text-3xl sm:text-4xl font-bold">{{ facility.name }}</h1>
+                <p class="text-sm text-slate-300 mt-1 flex items-center gap-1.5">
+                    <svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>
+                    {{ facility.address }}, {{ facility.city }} {{ facility.postal_code }}
+                </p>
+            </div>
+
+            <!-- Favorite & Share Buttons -->
+            <div class="flex items-center space-x-3">
+                <button id="favBtn" onclick="toggleFavorite({{ facility.id }})" 
+                        class="px-4 py-2 rounded-xl border border-forest-800 bg-forest-900 hover:bg-forest-800 text-sm font-semibold text-slate-200 flex items-center gap-2 transition-colors">
+                    <span id="favIcon" class="{% if is_favorited %}text-rose-500{% else %}text-slate-400{% endif %}">♥</span>
+                    <span id="favText">{% if is_favorited %}Saved in Favorites{% else %}Save Favorite{% endif %}</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- Left Column: Media & Interactive Slot Selector -->
+        <div class="lg:col-span-8 space-y-8">
+            
+            <!-- Main Hero Image Gallery -->
+            <div class="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-classic">
+                <div class="relative h-80 sm:h-96">
+                    <img src="{{ facility.image_url }}" alt="{{ facility.name }}" class="w-full h-full object-cover">
+                    <div class="absolute bottom-4 left-4 flex flex-wrap gap-2">
+                        <span class="px-3 py-1 rounded-lg text-xs font-bold bg-white/95 text-forest-950 shadow-md">
+                            ★ {{ facility.rating }} ({{ facility.review_count }} verified reviews)
+                        </span>
+                        {% if facility.ev_charging_available %}
+                            <span class="px-3 py-1 rounded-lg text-xs font-bold bg-emerald-600 text-white shadow-md">
+                                ⚡ {{ facility.ev_charger_types }}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Slot & Floor Selector Widget -->
+            <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-classic">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-slate-100 gap-4">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-emerald-600">Step 1 — Slot Selection</span>
+                        <h2 class="font-classic text-2xl font-bold text-forest-950 mt-0.5">Interactive Parking Bay Map</h2>
+                        <p class="text-xs text-slate-500 mt-1">Select your desired floor level and click an available parking bay to reserve.</p>
+                    </div>
+
+                    <!-- Floor Selector Tabs -->
+                    <div class="flex items-center space-x-1.5 p-1 bg-slate-100 rounded-xl">
+                        {% for fl in floors %}
+                            <a href="?floor={{ fl.id }}" 
+                               class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all {% if active_floor.id == fl.id %}bg-white text-forest-950 shadow-xs{% else %}text-slate-600 hover:text-slate-900{% endif %}">
+                                {{ fl.floor_name }}
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Legend Bar -->
+                <div class="flex flex-wrap items-center gap-4 py-4 px-3 my-4 bg-slate-50 rounded-xl text-xs font-medium text-slate-600 border border-slate-100">
+                    <span class="text-slate-400 font-semibold mr-1">Legend:</span>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-3.5 h-3.5 rounded bg-emerald-500 inline-block"></span>
+                        <span>Available</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-3.5 h-3.5 rounded bg-slate-300 inline-block"></span>
+                        <span>Occupied</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-3.5 h-3.5 rounded bg-forest-950 border border-emerald-400 inline-block"></span>
+                        <span>Your Selected Bay</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-emerald-700 font-bold">⚡</span>
+                        <span>EV Charger Bay</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-sky-700 font-bold">♿</span>
+                        <span>Accessible Bay</span>
+                    </div>
+                </div>
+
+                <!-- Slots Grid Visual Representation -->
+                <div class="p-6 bg-slate-900 rounded-2xl border-2 border-slate-800">
+                    <div class="text-center pb-4 text-xs font-mono tracking-widest text-emerald-400 uppercase border-b border-slate-800 mb-6">
+                        ← DRIVEWAY & MAIN ENTRY BARRIER LANE →
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3.5">
+                        {% for slot in slots %}
+                            {% if slot.status == 'available' %}
+                                <button type="button" 
+                                        onclick="selectSlot('{{ slot.id }}', '{{ slot.slot_number }}', '{{ slot.get_vehicle_type_display }}', '{{ slot.price_multiplier }}', {{ slot.has_ev_charger|yesno:'true,false' }})"
+                                        id="slot-btn-{{ slot.id }}"
+                                        class="slot-btn relative h-28 rounded-xl border-2 border-emerald-500/70 bg-emerald-950/40 hover:bg-emerald-800/40 text-emerald-200 transition-all flex flex-col items-center justify-between p-2.5 group cursor-pointer focus:outline-none">
+                                    
+                                    <div class="w-full flex items-center justify-between text-[11px] font-mono">
+                                        <span class="font-bold text-white">{{ slot.slot_number }}</span>
+                                        {% if slot.has_ev_charger %}
+                                            <span class="text-emerald-400 text-xs" title="EV Supercharger">⚡</span>
+                                        {% elif slot.is_handicap %}
+                                            <span class="text-sky-400 text-xs" title="Handicap Accessible">♿</span>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Car Outline / Bay Icon -->
+                                    <div class="my-auto text-emerald-400 group-hover:scale-110 transition-transform">
+                                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 17a2 2 0 100 4 2 2 0 000-4zm8 0a2 2 0 100 4 2 2 0 000-4zM5 11l2-5h10l2 5M3 11h18v6H3z"></path>
+                                        </svg>
+                                    </div>
+
+                                    <div class="text-[10px] font-semibold text-emerald-300">
+                                        Available
+                                    </div>
+                                </button>
+                            {% else %}
+                                <div class="relative h-28 rounded-xl border border-slate-700 bg-slate-800/70 text-slate-500 flex flex-col items-center justify-between p-2.5 cursor-not-allowed opacity-75">
+                                    <div class="w-full flex items-center justify-between text-[11px] font-mono text-slate-400">
+                                        <span>{{ slot.slot_number }}</span>
+                                        {% if slot.has_ev_charger %}<span>⚡</span>{% endif %}
+                                    </div>
+
+                                    <!-- Parked Car Icon -->
+                                    <div class="my-auto text-slate-600">
+                                        <svg class="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
+                                        </svg>
+                                    </div>
+
+                                    <div class="text-[10px] font-semibold text-slate-400 uppercase">
+                                        Occupied
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                    <div class="text-center pt-5 mt-6 text-xs font-mono tracking-widest text-slate-500 border-t border-slate-800">
+                        EXIT RAMPS & AUTOMATED BARRIER CONTROL
+                    </div>
+                </div>
+            </div>
+
+            <!-- Facility Details, Rules, Amenities -->
+            <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-classic space-y-6">
+                <div>
+                    <h3 class="font-classic text-xl font-bold text-forest-950">About This Facility</h3>
+                    <p class="text-slate-600 text-sm mt-2 leading-relaxed">
+                        {{ facility.description }}
+                    </p>
+                </div>
+
+                <div class="border-t border-slate-100 pt-6">
+                    <h4 class="text-sm font-bold text-forest-950 uppercase tracking-wider mb-3">Facility Amenities</h4>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {% for am in facility.amenities %}
+                            <div class="flex items-center space-x-2 text-xs text-slate-700 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                <span class="font-medium">{{ am }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Policies -->
+                <div class="border-t border-slate-100 pt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-slate-600">
+                    <div class="p-4 rounded-xl bg-forest-50 border border-forest-100 space-y-1">
+                        <p class="font-bold text-forest-900">Cancellation Policy</p>
+                        <p>Free instant cancellation with 100% refund up to {{ facility.cancellation_hours_before }} hours before reservation entry time.</p>
+                    </div>
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                        <p class="font-bold text-slate-900">Contactless QR Access</p>
+                        <p>Digital pass automatically unlocks barrier gate via optical laser scanner. No tickets to pull or lose.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer Reviews Section -->
+            <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-classic space-y-6">
+                <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                    <div>
+                        <h3 class="font-classic text-xl font-bold text-forest-950">Driver Reviews</h3>
+                        <p class="text-xs text-slate-400">Verified parking experiences from community drivers</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-2xl font-bold text-forest-950">{{ facility.rating }}</span>
+                        <span class="text-xs text-amber-500">★ ★ ★ ★ ★</span>
+                    </div>
+                </div>
+
+                <!-- Reviews List -->
+                <div class="space-y-4">
+                    {% for r in reviews %}
+                        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="font-bold text-slate-800">{{ r.user.get_full_name|default:r.user.username }}</span>
+                                <span class="text-slate-400">{{ r.created_at|date:"M d, Y" }}</span>
+                            </div>
+                            <div class="text-xs text-amber-500">
+                                {% for i in "12345"|make_list %}
+                                    ★
+                                {% endfor %}
+                            </div>
+                            <p class="text-xs text-slate-600 leading-relaxed">{{ r.comment }}</p>
+                        </div>
+                    {% empty %}
+                        <p class="text-xs text-slate-400 italic">No reviews yet. Be the first to park and leave feedback!</p>
+                    {% endfor %}
+                </div>
+
+                <!-- Submit Review Form -->
+                {% if request.user.is_authenticated %}
+                    <form method="POST" class="pt-4 border-t border-slate-100 space-y-3">
+                        {% csrf_token %}
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700">Leave Your Review</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                            <div class="sm:col-span-1">
+                                {{ review_form.rating }}
+                            </div>
+                            <div class="sm:col-span-3">
+                                {{ review_form.comment }}
+                            </div>
+                        </div>
+                        <button type="submit" name="submit_review" class="px-4 py-2 rounded-xl bg-forest-900 text-white text-xs font-semibold hover:bg-forest-950 transition-colors">
+                            Submit Verified Review
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+
+        </div>
+
+        <!-- Right Column: Booking Summary & Direct Action Card (Sticky) -->
+        <div class="lg:col-span-4 sticky top-24 space-y-6">
+            <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-classic-lg">
+                <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                    <div>
+                        <p class="text-xs text-slate-400 font-semibold uppercase">Hourly Tariff</p>
+                        <p class="text-2xl font-bold text-forest-950">{{ CURRENCY_SYMBOL }}{{ facility.hourly_rate }}<span class="text-sm font-normal text-slate-400">/hr</span></p>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        {{ facility.available_slots_count }} Bays Ready
+                    </span>
+                </div>
+
+                <form action="{% url 'booking_checkout' %}" method="GET" class="mt-6 space-y-4">
+                    <input type="hidden" name="facility" value="{{ facility.slug }}">
+                    <input type="hidden" name="slot_id" id="selectedSlotInput" value="">
+
+                    <!-- Selected Bay Highlight Box -->
+                    <div id="selectionAlert" class="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-center space-x-2">
+                        <svg class="w-4 h-4 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span id="selectedSlotText">Please click an available parking bay from the grid on the left.</span>
+                    </div>
+
+                    <!-- Date & Time Form -->
+                    <div class="space-y-3 pt-2">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Entry Date & Time</label>
+                            <input type="datetime-local" name="start_time" value="{{ now_iso }}" required
+                                   class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-emerald-600 focus:outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Exit Date & Time</label>
+                            <input type="datetime-local" name="end_time" value="{{ later_iso }}" required
+                                   class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-emerald-600 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <!-- Price Estimate Preview -->
+                    <div class="pt-4 border-t border-slate-100 text-xs text-slate-600 space-y-1.5">
+                        <div class="flex justify-between">
+                            <span>Base Rate (Estimated 3 hrs)</span>
+                            <span class="font-semibold text-slate-800">{{ CURRENCY_SYMBOL }}{{ facility.hourly_rate|floatformat:2 }} × 3</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Service & Security Fee</span>
+                            <span class="font-semibold text-slate-800">{{ CURRENCY_SYMBOL }}1.50</span>
+                        </div>
+                        <div class="flex justify-between pt-2 border-t border-slate-100 text-sm font-bold text-forest-950">
+                            <span>Total (Est.)</span>
+                            <span class="text-emerald-700">{{ CURRENCY_SYMBOL }}{{ facility.hourly_rate|add:facility.hourly_rate|add:facility.hourly_rate|add:1.5|floatformat:2 }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Proceed Button -->
+                    <button type="submit" id="bookNowBtn" disabled
+                            class="w-full py-3.5 rounded-xl bg-slate-300 text-slate-500 font-semibold text-sm transition-all flex items-center justify-center space-x-2 cursor-not-allowed">
+                        <span>Proceed to Reservation</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    </button>
+                </form>
+
+                <p class="text-[11px] text-slate-400 text-center mt-3">
+                    Guaranteed slot lock upon checkout completion.
+                </p>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let activeSelectedSlotId = null;
+
+    function selectSlot(slotId, slotNumber, vehicleType, multiplier, hasEv) {
+        // Clear previous selection
+        if (activeSelectedSlotId) {
+            const prev = document.getElementById(`slot-btn-${activeSelectedSlotId}`);
+            if (prev) {
+                prev.classList.remove('bg-forest-900', 'border-emerald-400', 'ring-4', 'ring-emerald-400/30');
+                prev.classList.add('bg-emerald-950/40', 'border-emerald-500/70');
+            }
+        }
+
+        activeSelectedSlotId = slotId;
+        const currentBtn = document.getElementById(`slot-btn-${slotId}`);
+        if (currentBtn) {
+            currentBtn.classList.remove('bg-emerald-950/40', 'border-emerald-500/70');
+            currentBtn.classList.add('bg-forest-900', 'border-emerald-400', 'ring-4', 'ring-emerald-400/30');
+        }
+
+        // Update Hidden input and box
+        document.getElementById('selectedSlotInput').value = slotId;
+        
+        const alertBox = document.getElementById('selectionAlert');
+        alertBox.className = 'p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-center space-x-2';
+        alertBox.innerHTML = `
+            <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            <span>Selected Bay: <strong>${slotNumber}</strong> (${vehicleType}${hasEv ? ' • EV Ready' : ''})</span>
+        `;
+
+        // Enable Proceed Button
+        const btn = document.getElementById('bookNowBtn');
+        btn.disabled = false;
+        btn.className = 'w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-all shadow-md shadow-emerald-600/30 flex items-center justify-center space-x-2 cursor-pointer';
+    }
+
+    function toggleFavorite(facilityId) {
+        fetch(`/favorite/${facilityId}/`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const icon = document.getElementById('favIcon');
+                    const text = document.getElementById('favText');
+                    if (data.favorited) {
+                        icon.className = 'text-rose-500';
+                        text.innerText = 'Saved in Favorites';
+                    } else {
+                        icon.className = 'text-slate-400';
+                        text.innerText = 'Save Favorite';
+                    }
+                } else {
+                    window.location.href = "{% url 'login' %}";
+                }
+            })
+            .catch(() => {
+                window.location.href = "{% url 'login' %}";
+            });
+    }
+</script>
+{% endblock %}

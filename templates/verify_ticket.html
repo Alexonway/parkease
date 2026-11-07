@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+
+{% block title %}Verify Digital Parking Pass — {{ BRAND_NAME }}{% endblock %}
+
+{% block content %}
+<div class="bg-forest-950 text-white py-10 border-b border-forest-900">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6">
+        <h1 class="font-classic text-3xl font-bold">Gate Barrier & Pass Validator</h1>
+        <p class="text-slate-300 text-sm mt-1">
+            Real-time digital ticket verification for parking attendants, barrier laser sensors, and drivers.
+        </p>
+    </div>
+</div>
+
+<div class="max-w-3xl mx-auto px-4 sm:px-6 py-10 space-y-8">
+    
+    <!-- Manual Search Box -->
+    <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-classic">
+        <form method="GET" action="{% url 'verify_ticket' %}" class="flex flex-col sm:flex-row gap-3">
+            <div class="flex-grow relative">
+                <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                <input type="text" name="reference" value="{{ reference|default:'' }}" placeholder="Enter Booking Reference (e.g. PK-892401)" required
+                       class="form-input pl-10 uppercase font-mono font-bold tracking-wider">
+            </div>
+            <button type="submit" class="px-6 py-2.5 rounded-xl bg-forest-900 text-white font-semibold text-sm hover:bg-forest-950 transition-colors shadow-xs">
+                Validate Pass
+            </button>
+        </form>
+    </div>
+
+    <!-- Error message if not found -->
+    {% if error_msg %}
+        <div class="p-6 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-center space-y-2">
+            <svg class="w-8 h-8 text-rose-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            <h4 class="font-bold text-sm">Pass Verification Failed</h4>
+            <p class="text-xs">{{ error_msg }}</p>
+        </div>
+    {% endif %}
+
+    <!-- Verification Result Card -->
+    {% if booking %}
+        <div class="bg-white rounded-3xl border-2 {% if booking.status == 'confirmed' %}border-emerald-500{% elif booking.status == 'checked_in' %}border-sky-500{% elif booking.status == 'completed' %}border-slate-300{% else %}border-rose-300{% endif %} overflow-hidden shadow-classic-lg">
+            
+            <!-- Result Banner -->
+            <div class="p-6 {% if booking.status == 'confirmed' %}bg-emerald-600 text-white{% elif booking.status == 'checked_in' %}bg-sky-600 text-white{% elif booking.status == 'completed' %}bg-slate-700 text-white{% else %}bg-rose-600 text-white{% endif %} flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center font-bold text-lg">
+                        {% if booking.status == 'confirmed' %}✓{% elif booking.status == 'checked_in' %}🅿{% elif booking.status == 'completed' %}⌛{% else %}✕{% endif %}
+                    </div>
+                    <div>
+                        <span class="text-[10px] font-bold uppercase tracking-wider block opacity-90">Live System Status</span>
+                        <h3 class="font-classic text-xl font-bold">
+                            {% if booking.status == 'confirmed' %}
+                                VALID RESERVED PASS — AUTHORIZED ENTRY
+                            {% elif booking.status == 'checked_in' %}
+                                VEHICLE CURRENTLY PARKED IN BAY
+                            {% elif booking.status == 'completed' %}
+                                PARKING SESSION COMPLETED
+                            {% else %}
+                                CANCELLED & REFUNDED (INVALID FOR ENTRY)
+                            {% endif %}
+                        </h3>
+                    </div>
+                </div>
+
+                <div class="text-right">
+                    <span class="font-mono text-sm font-bold bg-black/20 px-3 py-1 rounded-md">
+                        {{ booking.reference_code }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Booking Specifications -->
+            <div class="p-6 sm:p-8 space-y-6">
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-6 text-xs">
+                    <div>
+                        <span class="text-slate-400 font-bold uppercase block text-[10px]">Facility</span>
+                        <p class="font-bold text-slate-800 text-sm mt-0.5">{{ booking.facility.name }}</p>
+                        <p class="text-slate-500">{{ booking.facility.address }}</p>
+                    </div>
+
+                    <div>
+                        <span class="text-slate-400 font-bold uppercase block text-[10px]">Assigned Slot</span>
+                        <p class="font-mono font-bold text-forest-950 text-base mt-0.5">{{ booking.slot.slot_number }}</p>
+                        <p class="text-slate-500">{{ booking.floor.floor_name }}</p>
+                    </div>
+
+                    <div>
+                        <span class="text-slate-400 font-bold uppercase block text-[10px]">Vehicle Registration</span>
+                        <p class="font-mono font-bold text-emerald-700 text-base mt-0.5 uppercase">{{ booking.vehicle_plate }}</p>
+                        <p class="text-slate-500">{{ booking.vehicle_model|default:booking.get_vehicle_type_display }}</p>
+                    </div>
+
+                    <div>
+                        <span class="text-slate-400 font-bold uppercase block text-[10px]">Driver Name</span>
+                        <p class="font-semibold text-slate-800 mt-0.5">{{ booking.guest_name }}</p>
+                        <p class="text-slate-500">{{ booking.guest_phone }}</p>
+                    </div>
+
+                    <div>
+                        <span class="text-slate-400 font-bold uppercase block text-[10px]">Authorized Window</span>
+                        <p class="font-semibold text-slate-800 mt-0.5">{{ booking.start_time|date:"M d, h:i A" }}</p>
+                        <p class="text-slate-500">Until {{ booking.end_time|date:"M d, h:i A" }}</p>
+                    </div>
+
+                    <div>
+                        <span class="text-slate-400 font-bold uppercase block text-[10px]">Payment Verification</span>
+                        <p class="font-bold text-emerald-700 mt-0.5">PAID {{ CURRENCY_SYMBOL }}{{ booking.total_price }}</p>
+                        <p class="text-slate-400 font-mono text-[10px]">{{ booking.payment.transaction_id|default:"VERIFIED" }}</p>
+                    </div>
+                </div>
+
+                <!-- Operator / Staff Actions (Live Gate Control) -->
+                <div class="pt-6 border-t border-slate-100">
+                    {% if is_staff %}
+                        <div class="p-4 rounded-2xl bg-forest-50 border border-forest-200 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-forest-950 uppercase tracking-wider flex items-center gap-1.5">
+                                    <svg class="w-4 h-4 text-forest-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                                    Gate Barrier Control (Staff Console)
+                                </span>
+                                <span class="text-[11px] text-slate-500">Operator: {{ request.user.get_full_name|default:request.user.username }}</span>
+                            </div>
+
+                            <form method="POST" class="flex flex-wrap gap-3">
+                                {% csrf_token %}
+                                {% if booking.status == 'confirmed' %}
+                                    <button type="submit" name="gate_action" value="check_in" 
+                                            class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                        Open Barrier & Record Vehicle Entry
+                                    </button>
+                                {% elif booking.status == 'checked_in' %}
+                                    <button type="submit" name="gate_action" value="complete" 
+                                            class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                                        Record Vehicle Exit & Release Slot
+                                    </button>
+                                {% endif %}
+                            </form>
+                        </div>
+                    {% else %}
+                        <p class="text-xs text-slate-400 text-center">
+                            Are you a facility attendant? <a href="{% url 'login' %}?demo=admin" class="text-emerald-700 font-semibold underline">Log into staff console</a> to operate the physical barrier gate.
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}
