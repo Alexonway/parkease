@@ -20,6 +20,15 @@ ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts.split(",") if h.strip()]
 _csrf_origins = os.environ.get("CSRF_TRUSTED_ORIGINS", "")
 if _csrf_origins:
     CSRF_TRUSTED_ORIGINS = [o.strip() for o in _csrf_origins.split(",") if o.strip()]
+else:
+    CSRF_TRUSTED_ORIGINS = [
+        "https://*.pinggy-free.link",
+        "https://*.free.pinggy.net",
+        "https://*.pinggy.link",
+        "https://*.pinggy.net",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ]
 
 # Brand & Customization Settings (Easy to configure)
 BRAND_NAME = "E-Parking"
