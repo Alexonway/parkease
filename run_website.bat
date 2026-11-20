@@ -7,6 +7,12 @@ echo   Starting ParkEase Website...
 echo ====================================================
 echo.
 
+REM Clean up any stale/duplicate python processes holding port 8000
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8000 ^| findstr LISTENING') do (
+    echo Freeing port 8000 from stale process PID %%a...
+    taskkill /f /pid %%a >nul 2>&1
+)
+
 REM Automatically open the browser after 2 seconds in the background
 start "" cmd /c "timeout /t 2 /nobreak >nul && start http://127.0.0.1:8000/"
 
