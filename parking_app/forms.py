@@ -59,6 +59,12 @@ class MultipleFileInput(forms.FileInput):
 
 
 class FacilityAdminForm(forms.ModelForm):
+    slug = forms.CharField(
+        required=False,
+        label="URL Identifier (Slug)",
+        help_text="Optional — any text you enter with spaces will automatically be converted to a clean URL slug",
+        widget=forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Optional — auto-generated from name'})
+    )
     image_file = forms.FileField(
         required=False,
         label="Upload Main Place Image",
@@ -151,6 +157,12 @@ class FacilityAdminForm(forms.ModelForm):
                 self.fields['amenities_text'].initial = ', '.join(self.instance.amenities)
             if self.instance.gallery_images:
                 self.fields['gallery_urls'].initial = '\n'.join(self.instance.gallery_images)
+
+    def clean_slug(self):
+        slug = (self.cleaned_data.get('slug') or '').strip()
+        if slug:
+            return slugify(slug)
+        return ''
 
     def clean(self):
         cleaned_data = super().clean()
