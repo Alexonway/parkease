@@ -6,11 +6,14 @@ from django.contrib import messages
 from django.db import transaction
 from django.db.models import Q, Sum, Count
 from django.utils import timezone
-from django.http import JsonResponse, HttpResponseForbidden
+from django.http import JsonResponse, HttpResponseForbidden, HttpResponse
+from django.conf import settings
+from django.core.files.storage import default_storage
 from datetime import datetime, timedelta
 from decimal import Decimal
 from functools import wraps
 import json
+import re
 
 from .models import (
     UserProfile, ParkingFacility, ParkingFloor, ParkingSlot,
@@ -18,6 +21,7 @@ from .models import (
 )
 from .forms import UserRegistrationForm, ContactForm, ReviewForm, FacilityAdminForm
 from .utils import generate_qr_code_base64, calculate_parking_quote
+from .sql_sync import sync_facilities_to_sql
 
 def is_staff_or_admin(user):
     if not user.is_authenticated:
@@ -491,11 +495,49 @@ def dashboard_view(request):
     return render(request, 'dashboard.html', context)
 
 
-# --- ADMIN DASHBOARD ---
+# --- ADMIN DASHBOARD & FACILITY MANAGEMENT ---
+
+def handle_facility_images(request, form, facility):
+    """
+    Handles uploaded hero image files, web URLs, and multiple gallery place photos.
+    """
+    # 1. Main Hero Image File Upload
+    hero_file = request.FILES.get('image_file')
+    if hero_file:
+        clean_name = re.sub(r'[^a-zA-Z0-9_\.-]', '_', hero_file.name)
+        file_path = default_storage.save(f"facilities/{facility.slug}_{clean_name}", hero_file)
+        facility.image_url = f"{settings.MEDIA_URL}{file_path}"
+    elif not facility.image_url and form.cleaned_data.get('image_url'):
+        facility.image_url = form.cleaned_data.get('image_url')
+
+    # Default fallback placeholder if no image provided
+    if not facility.image_url:
+        facility.image_url = "https://images.unsplash.com/photo-1506521781263-d8422e82f27a?auto=format&fit=crop&w=1200&q=80"
+
+    # 2. Gallery Images (Multiple place photos)
+    gallery = list(facility.gallery_images or [])
+    
+    # Process multiple photo file uploads
+    gallery_files = request.FILES.getlist('gallery_files')
+    for idx, g_file in enumerate(gallery_files):
+        clean_g_name = re.sub(r'[^a-zA-Z0-9_\.-]', '_', g_file.name)
+        g_path = default_storage.save(f"facilities/{facility.slug}_gallery_{idx}_{clean_g_name}", g_file)
+        gallery.append(f"{settings.MEDIA_URL}{g_path}")
+
+    # Process additional image URLs from textarea
+    urls_raw = form.cleaned_data.get('gallery_urls', '')
+    if urls_raw:
+        urls = [u.strip() for u in urls_raw.replace(',', '\n').split('\n') if u.strip().startswith('http')]
+        for u in urls:
+            if u not in gallery:
+                gallery.append(u)
+
+    facility.gallery_images = gallery
+
 
 @admin_required
 def admin_dashboard_view(request):
-    facilities = ParkingFacility.objects.all().annotate(slot_count=Count('slots'))
+    facilities = ParkingFacility.objects.all().annotate(slot_count=Count('slots')).order_by('-is_featured', 'name')
     total_facilities = facilities.count()
     total_slots = ParkingSlot.objects.count()
     occupied_slots = ParkingSlot.objects.filter(status='occupied').count()
@@ -507,31 +549,51 @@ def admin_dashboard_view(request):
 
     facility_form = FacilityAdminForm()
     if request.method == 'POST' and 'create_facility' in request.POST:
-        facility_form = FacilityAdminForm(request.POST)
+        facility_form = FacilityAdminForm(request.POST, request.FILES)
         if facility_form.is_valid():
             new_facility = facility_form.save(commit=False)
+            
+            # Process amenities
             amenities_raw = facility_form.cleaned_data.get('amenities_text', '')
             if amenities_raw:
                 new_facility.amenities = [a.strip() for a in amenities_raw.split(',') if a.strip()]
+            else:
+                new_facility.amenities = ["Covered Parking", "24/7 CCTV", "Fast EV Charging"]
+
+            # Save uploaded photos & details
+            handle_facility_images(request, facility_form, new_facility)
             new_facility.save()
 
-            # Automatically create 2 default floors and 16 slots
-            f1 = ParkingFloor.objects.create(facility=new_facility, floor_name="Level P1 - Ground Floor", floor_number=1)
-            f2 = ParkingFloor.objects.create(facility=new_facility, floor_name="Level P2 - Upper Level", floor_number=2)
-            
-            for i in range(1, 9):
-                ParkingSlot.objects.create(
-                    facility=new_facility, floor=f1, slot_number=f"A-{i:02d}",
-                    vehicle_type='sedan', status='available'
-                )
-                ParkingSlot.objects.create(
-                    facility=new_facility, floor=f2, slot_number=f"B-{i:02d}",
-                    vehicle_type='ev' if i <= 3 else 'suv',
-                    has_ev_charger=True if i <= 3 else False,
-                    status='available'
-                )
+            # Dynamic floor & slot provisioning
+            floors_count = facility_form.cleaned_data.get('floors_count') or 2
+            slots_per_floor = facility_form.cleaned_data.get('slots_per_floor') or 8
 
-            messages.success(request, f"Facility '{new_facility.name}' and initial parking bays initialized successfully!")
+            for f_num in range(1, floors_count + 1):
+                deck_letter = chr(64 + f_num) # A, B, C...
+                floor = ParkingFloor.objects.create(
+                    facility=new_facility,
+                    floor_name=f"Deck {deck_letter} - Level P{f_num}",
+                    floor_number=f_num
+                )
+                for s_num in range(1, slots_per_floor + 1):
+                    is_ev = (s_num <= 2 and new_facility.ev_charging_available)
+                    v_type = 'ev' if is_ev else ('suv' if s_num % 3 == 0 else 'sedan')
+                    ParkingSlot.objects.create(
+                        facility=new_facility,
+                        floor=floor,
+                        slot_number=f"{deck_letter}-{s_num:02d}",
+                        vehicle_type=v_type,
+                        has_ev_charger=is_ev,
+                        status='available'
+                    )
+
+            # Synchronize into SQL script file automatically!
+            sync_facilities_to_sql()
+
+            messages.success(
+                request,
+                f"Facility '{new_facility.name}' registered with {floors_count * slots_per_floor} bays, photos stored, and automatically exported to SQL file!"
+            )
             return redirect('admin_dashboard')
 
     context = {
@@ -546,6 +608,87 @@ def admin_dashboard_view(request):
         'facility_form': facility_form,
     }
     return render(request, 'admin_dashboard.html', context)
+
+
+@admin_required
+def admin_facility_edit_view(request, facility_id):
+    """
+    Rewrite / Edit an existing parking facility.
+    Allows changing photos, description, prices, coordinates, amenities, and status.
+    Automatically saves changes to the SQL export file.
+    """
+    facility = get_object_or_404(ParkingFacility, id=facility_id)
+
+    if request.method == 'POST':
+        form = FacilityAdminForm(request.POST, request.FILES, instance=facility)
+        if form.is_valid():
+            updated_facility = form.save(commit=False)
+            
+            # Amenities
+            amenities_raw = form.cleaned_data.get('amenities_text', '')
+            if amenities_raw:
+                updated_facility.amenities = [a.strip() for a in amenities_raw.split(',') if a.strip()]
+            else:
+                updated_facility.amenities = []
+
+            # Place photos
+            handle_facility_images(request, form, updated_facility)
+            updated_facility.save()
+
+            # Synchronize to SQL file automatically!
+            sync_facilities_to_sql()
+
+            messages.success(
+                request,
+                f"Facility '{updated_facility.name}' rewritten and updated successfully! Changes saved to SQL file."
+            )
+            return redirect('admin_dashboard')
+    else:
+        form = FacilityAdminForm(instance=facility)
+
+    context = {
+        'facility': facility,
+        'form': form,
+    }
+    return render(request, 'admin_facility_edit.html', context)
+
+
+@admin_required
+def admin_facility_toggle_status_view(request, facility_id):
+    """
+    Quick toggle to activate or deactivate a facility.
+    """
+    facility = get_object_or_404(ParkingFacility, id=facility_id)
+    facility.is_active = not facility.is_active
+    facility.save()
+    sync_facilities_to_sql()
+    state = "activated" if facility.is_active else "deactivated"
+    messages.success(request, f"Facility '{facility.name}' has been {state} and synced to SQL.")
+    return redirect('admin_dashboard')
+
+
+@admin_required
+def admin_sql_export_view(request):
+    """
+    Download the generated SQL script containing all facility definitions.
+    """
+    sql_path, _ = sync_facilities_to_sql()
+    with open(sql_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    response = HttpResponse(content, content_type='application/sql')
+    response['Content-Disposition'] = 'attachment; filename="parkease_facilities_export.sql"'
+    return response
+
+
+@admin_required
+def admin_sql_sync_now_view(request):
+    """
+    Explicitly triggers full database synchronization to SQL export file.
+    """
+    sync_facilities_to_sql()
+    messages.success(request, "All parking facilities and images have been re-synchronized into 'parkease_facilities_export.sql'!")
+    return redirect('admin_dashboard')
+
 
 
 # --- INFORMATION PAGES ---

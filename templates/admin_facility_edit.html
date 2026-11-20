@@ -1,0 +1,244 @@
+{% extends 'base.html' %}
+
+{% block title %}Rewrite & Edit Facility: {{ facility.name }} — {{ BRAND_NAME }}{% endblock %}
+
+{% block content %}
+<div class="bg-forest-950 text-white py-8 border-b border-forest-900">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <a href="{% url 'admin_dashboard' %}" class="inline-flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 font-semibold mb-2 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                    Back to Executive Operations Console
+                </a>
+                <h1 class="font-classic text-2xl sm:text-3xl font-bold">Rewrite & Update Parking Place</h1>
+                <p class="text-xs text-slate-300 mt-1">Modify place images, rates, location, and details. Changes are automatically updated in the database and synchronized to the SQL script.</p>
+            </div>
+            
+            <div class="flex items-center space-x-2">
+                <span class="px-3 py-1 rounded-lg text-xs font-bold {% if facility.is_active %}bg-emerald-900/60 text-emerald-300 border border-emerald-700{% else %}bg-rose-900/60 text-rose-300 border border-rose-700{% endif %}">
+                    {% if facility.is_active %}Currently Active{% else %}Deactivated{% endif %}
+                </span>
+                <a href="{% url 'facility_detail' slug=facility.slug %}" target="_blank" class="px-3 py-1.5 rounded-xl bg-forest-900 hover:bg-forest-800 text-xs font-semibold text-slate-200 border border-forest-800 transition-colors flex items-center gap-1">
+                    Preview Live Place &rarr;
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    
+    <form method="POST" enctype="multipart/form-data" class="space-y-8 bg-white rounded-3xl p-6 sm:p-10 border border-slate-200 shadow-classic">
+        {% csrf_token %}
+
+        <!-- SECTION 1: Place Images & Visuals -->
+        <div class="space-y-4 border-b border-slate-100 pb-8">
+            <div class="flex items-center gap-2">
+                <span class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm">1</span>
+                <div>
+                    <h3 class="font-classic text-lg font-bold text-forest-950">Place Images & Visuals</h3>
+                    <p class="text-xs text-slate-500">Upload high-resolution place photos from your computer or provide web image URLs.</p>
+                </div>
+            </div>
+
+            <!-- Current Hero Image Preview -->
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-start pt-2">
+                <div class="md:col-span-4">
+                    <span class="block text-xs font-bold uppercase text-slate-500 mb-2">Current Hero Image</span>
+                    <div class="relative rounded-2xl overflow-hidden border border-slate-200 aspect-video bg-slate-100 shadow-sm">
+                        <img src="{{ facility.image_url }}" alt="{{ facility.name }}" class="w-full h-full object-cover">
+                    </div>
+                </div>
+
+                <div class="md:col-span-8 space-y-4">
+                    <div>
+                        <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Upload New Hero Image from PC</label>
+                        {{ form.image_file }}
+                        <p class="text-[11px] text-slate-400 mt-1">Selecting a file will replace the current image and save it securely to your media library.</p>
+                    </div>
+
+                    <div>
+                        <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Or Update Image URL Directly</label>
+                        {{ form.image_url }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Place Photos (Gallery) -->
+            <div class="pt-4 border-t border-slate-100 space-y-3">
+                <label class="block font-bold text-xs uppercase text-slate-700">Upload Additional Gallery Photos (Multiple Files)</label>
+                {{ form.gallery_files }}
+                <p class="text-[11px] text-slate-400">Select multiple files (Hold Ctrl or Shift) to showcase parking lanes, ramps, EV bays, and security booths.</p>
+
+                <div class="pt-2">
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Additional Web Photo URLs (One per line or comma-separated)</label>
+                    {{ form.gallery_urls }}
+                </div>
+
+                {% if facility.gallery_images %}
+                    <div class="pt-3">
+                        <span class="block text-xs font-semibold text-slate-600 mb-2">Existing Gallery Photos ({{ facility.gallery_images|length }} photos):</span>
+                        <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                            {% for g_img in facility.gallery_images %}
+                                <div class="rounded-lg overflow-hidden border border-slate-200 aspect-video bg-slate-100">
+                                    <img src="{{ g_img }}" alt="Gallery photo" class="w-full h-full object-cover">
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- SECTION 2: Basic Place Details & Identity -->
+        <div class="space-y-4 border-b border-slate-100 pb-8">
+            <div class="flex items-center gap-2">
+                <span class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm">2</span>
+                <div>
+                    <h3 class="font-classic text-lg font-bold text-forest-950">Place Identity & Location</h3>
+                    <p class="text-xs text-slate-500">Facility names, addresses, and GPS coordinates across Delhi NCR, UP, and Haryana.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Facility Name *</label>
+                    {{ form.name }}
+                </div>
+                <div>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">URL Identifier (Slug) *</label>
+                    {{ form.slug }}
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Tagline / Catchphrase</label>
+                {{ form.tagline }}
+            </div>
+
+            <div>
+                <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Full Street / Sector Address *</label>
+                {{ form.address }}
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">City / Region (e.g. New Delhi, Noida, Gurugram) *</label>
+                    {{ form.city }}
+                </div>
+                <div>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Postal Code (PIN Code)</label>
+                    {{ form.postal_code }}
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Latitude (GPS) *</label>
+                    {{ form.latitude }}
+                </div>
+                <div>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Longitude (GPS) *</label>
+                    {{ form.longitude }}
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 3: Tariff & Pricing -->
+        <div class="space-y-4 border-b border-slate-100 pb-8">
+            <div class="flex items-center gap-2">
+                <span class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm">3</span>
+                <div>
+                    <h3 class="font-classic text-lg font-bold text-forest-950">Parking Tariff (₹ INR)</h3>
+                    <p class="text-xs text-slate-500">Hourly and daily rates for drivers and online reservations.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Hourly Tariff (₹) *</label>
+                    {{ form.hourly_rate }}
+                </div>
+                <div>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Full Day Tariff (₹) *</label>
+                    {{ form.daily_rate }}
+                </div>
+                <div>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Free Cancellation Window (Hours)</label>
+                    {{ form.cancellation_hours_before }}
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 4: Features, Description & EV Charging -->
+        <div class="space-y-4 border-b border-slate-100 pb-8">
+            <div class="flex items-center gap-2">
+                <span class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm">4</span>
+                <div>
+                    <h3 class="font-classic text-lg font-bold text-forest-950">Description, Amenities & EV Infrastructure</h3>
+                    <p class="text-xs text-slate-500">Customer-facing highlights, security standards, and charging specs.</p>
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Detailed Description</label>
+                {{ form.description }}
+            </div>
+
+            <div>
+                <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Amenities (Comma-separated)</label>
+                {{ form.amenities_text }}
+                <p class="text-[11px] text-slate-400 mt-1">Example: Covered Parking, 24/7 CCTV, Fast EV Charging, Valet, Car Wash, Wheelchair Accessible</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center pt-2">
+                <div class="space-y-3">
+                    <label class="flex items-center space-x-2 text-xs font-bold text-slate-700 cursor-pointer">
+                        {{ form.ev_charging_available }}
+                        <span>EV Charging Available at this Facility</span>
+                    </label>
+                    <label class="flex items-center space-x-2 text-xs font-bold text-slate-700 cursor-pointer">
+                        {{ form.is_24_7 }}
+                        <span>24/7 Access & Round-the-clock Security</span>
+                    </label>
+                    <label class="flex items-center space-x-2 text-xs font-bold text-slate-700 cursor-pointer">
+                        {{ form.is_featured }}
+                        <span>Promote as Featured Facility (Homepage Banner)</span>
+                    </label>
+                    <label class="flex items-center space-x-2 text-xs font-bold text-slate-700 cursor-pointer">
+                        {{ form.is_active }}
+                        <span>Active & Available for Online Bookings</span>
+                    </label>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">EV Charger Types & Power</label>
+                    {{ form.ev_charger_types }}
+                    <p class="text-[11px] text-slate-400 mt-1">e.g. Type 2 AC & CCS2 60kW DC Fast Charge</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submission Actions & SQL Sync Notice -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
+            <div class="flex items-center space-x-2 text-xs text-slate-500">
+                <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span>Saving updates both database and exports directly to <strong>parkease_facilities_export.sql</strong></span>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                <a href="{% url 'admin_dashboard' %}" class="px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors">
+                    Cancel
+                </a>
+                <button type="submit" class="px-7 py-3 rounded-xl bg-forest-900 hover:bg-forest-950 text-white font-semibold text-xs shadow-classic flex items-center gap-2 transition-colors">
+                    <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    Save & Rewrite Place (Sync to SQL)
+                </button>
+            </div>
+        </div>
+
+    </form>
+
+</div>
+{% endblock %}

@@ -51,11 +51,50 @@ class ReviewForm(forms.ModelForm):
         }
 
 
+class MultipleFileInput(forms.FileInput):
+    allow_multiple_selected = True
+
+
 class FacilityAdminForm(forms.ModelForm):
+    image_file = forms.FileField(
+        required=False,
+        label="Upload Main Place Image",
+        help_text="Upload a photo from your computer (JPG, PNG, WebP)",
+        widget=forms.FileInput(attrs={'class': 'form-input', 'accept': 'image/*'})
+    )
+    gallery_files = forms.FileField(
+        required=False,
+        label="Upload Additional Place Photos (Gallery)",
+        help_text="You can select multiple photo files to show more angles of this facility",
+        widget=MultipleFileInput(attrs={'class': 'form-input', 'accept': 'image/*'})
+    )
+    gallery_urls = forms.CharField(
+        required=False,
+        label="Additional Image URLs",
+        help_text="Paste web image links (comma or newline separated)",
+        widget=forms.Textarea(attrs={'class': 'form-input', 'rows': 2, 'placeholder': 'https://example.com/photo1.jpg, https://example.com/photo2.jpg'})
+    )
     amenities_text = forms.CharField(
         required=False,
-        help_text="Comma-separated amenities (e.g. Covered, EV Charging, 24/7 Security, CCTV, Valet)",
-        widget=forms.TextInput(attrs={'class': 'form-input'})
+        label="Amenities & Features",
+        help_text="Comma-separated amenities (e.g. Covered, EV Charging, 24/7 Security, CCTV, Valet, Car Wash)",
+        widget=forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Covered Parking, 24/7 CCTV, Fast EV Charging, Valet'})
+    )
+    floors_count = forms.IntegerField(
+        required=False,
+        initial=2,
+        min_value=1,
+        max_value=10,
+        label="Initial Decks / Floors to Provision",
+        widget=forms.NumberInput(attrs={'class': 'form-input'})
+    )
+    slots_per_floor = forms.IntegerField(
+        required=False,
+        initial=8,
+        min_value=1,
+        max_value=50,
+        label="Slots per Deck",
+        widget=forms.NumberInput(attrs={'class': 'form-input'})
     )
 
     class Meta:
@@ -67,18 +106,49 @@ class FacilityAdminForm(forms.ModelForm):
             'ev_charging_available', 'ev_charger_types', 'cancellation_hours_before'
         ]
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-input'}),
-            'slug': forms.TextInput(attrs={'class': 'form-input'}),
-            'tagline': forms.TextInput(attrs={'class': 'form-input'}),
-            'address': forms.TextInput(attrs={'class': 'form-input'}),
-            'city': forms.TextInput(attrs={'class': 'form-input'}),
-            'postal_code': forms.TextInput(attrs={'class': 'form-input'}),
-            'latitude': forms.NumberInput(attrs={'class': 'form-input', 'step': '0.0001'}),
-            'longitude': forms.NumberInput(attrs={'class': 'form-input', 'step': '0.0001'}),
-            'hourly_rate': forms.NumberInput(attrs={'class': 'form-input', 'step': '0.25'}),
-            'daily_rate': forms.NumberInput(attrs={'class': 'form-input', 'step': '1.00'}),
-            'image_url': forms.URLInput(attrs={'class': 'form-input'}),
-            'description': forms.Textarea(attrs={'class': 'form-input', 'rows': 3}),
-            'ev_charger_types': forms.TextInput(attrs={'class': 'form-input'}),
-            'cancellation_hours_before': forms.NumberInput(attrs={'class': 'form-input'}),
+            'name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. CyberHub Smart Tower Parking'}),
+            'slug': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. cyberhub-smart-tower'}),
+            'tagline': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. Executive multi-level deck in Gurugram'}),
+            'address': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Street / Sector / Complex Address'}),
+            'city': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. Gurugram (Haryana) or Noida (UP)'}),
+            'postal_code': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. 122002'}),
+            'latitude': forms.NumberInput(attrs={'class': 'form-input', 'step': '0.000001', 'placeholder': '28.4900'}),
+            'longitude': forms.NumberInput(attrs={'class': 'form-input', 'step': '0.000001', 'placeholder': '77.0900'}),
+            'hourly_rate': forms.NumberInput(attrs={'class': 'form-input', 'step': '1.00', 'placeholder': '50'}),
+            'daily_rate': forms.NumberInput(attrs={'class': 'form-input', 'step': '5.00', 'placeholder': '300'}),
+            'image_url': forms.URLInput(attrs={'class': 'form-input', 'placeholder': 'https://images.unsplash.com/...'}),
+            'description': forms.Textarea(attrs={'class': 'form-input', 'rows': 3, 'placeholder': 'Describe security, accessibility, entry gates...'}),
+            'ev_charger_types': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. Type 2 & CCS2 Fast Charge'}),
+            'cancellation_hours_before': forms.NumberInput(attrs={'class': 'form-input', 'placeholder': '2'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['latitude'].required = False
+        self.fields['longitude'].required = False
+        self.fields['latitude'].initial = 28.5355
+        self.fields['longitude'].initial = 77.2410
+        self.fields['cancellation_hours_before'].required = False
+        self.fields['cancellation_hours_before'].initial = 2
+        self.fields['ev_charger_types'].required = False
+        self.fields['ev_charger_types'].initial = "Type 2 & CCS2 Fast Charge"
+        self.fields['hourly_rate'].initial = 50.00
+        self.fields['daily_rate'].initial = 300.00
+
+        if self.instance and self.instance.pk:
+            if self.instance.amenities:
+                self.fields['amenities_text'].initial = ', '.join(self.instance.amenities)
+            if self.instance.gallery_images:
+                self.fields['gallery_urls'].initial = '\n'.join(self.instance.gallery_images)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if not cleaned_data.get('latitude'):
+            cleaned_data['latitude'] = 28.5355
+        if not cleaned_data.get('longitude'):
+            cleaned_data['longitude'] = 77.2410
+        if not cleaned_data.get('cancellation_hours_before'):
+            cleaned_data['cancellation_hours_before'] = 2
+        if not cleaned_data.get('ev_charger_types'):
+            cleaned_data['ev_charger_types'] = "Type 2 & CCS2 Fast Charge"
+        return cleaned_data

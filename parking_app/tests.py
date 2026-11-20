@@ -235,3 +235,78 @@ class ParkingSystemTests(TestCase):
         res_admin = self.client.get('/admin-portal/')
         self.assertEqual(res_admin.status_code, 200)
         self.assertContains(res_admin, 'Executive Operations Console')
+
+    def test_admin_register_and_rewrite_facility_with_sql_sync(self):
+        self.client.login(username="adminuser", password="AdminPassword123!")
+
+        # 1. Register New Parking Facility with photos & details
+        new_place_data = {
+            'create_facility': '1',
+            'name': 'Aerocity Worldmark SkyDeck Parking',
+            'slug': 'aerocity-worldmark-skydeck',
+            'tagline': 'Premium multi-tier business hub parking',
+            'address': 'Asset Area 8, Hospitality District, Aerocity',
+            'city': 'New Delhi (Delhi)',
+            'postal_code': '110037',
+            'latitude': 28.5510,
+            'longitude': 77.1210,
+            'hourly_rate': Decimal('80.00'),
+            'daily_rate': Decimal('450.00'),
+            'image_url': 'https://images.unsplash.com/photo-1590674899484-d5640e854abe',
+            'gallery_urls': 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a, https://images.unsplash.com/photo-1563720223185-11003d516935',
+            'description': 'Executive covered parking facility at Aerocity with 24/7 security and ultra-fast EV chargers.',
+            'amenities_text': 'Covered Parking, 24/7 CCTV, Valet, Fast EV Charging',
+            'ev_charging_available': True,
+            'ev_charger_types': 'CCS2 60kW DC Fast Charge',
+            'is_24_7': True,
+            'is_active': True,
+            'is_featured': True,
+            'floors_count': 3,
+            'slots_per_floor': 6,
+        }
+        res_create = self.client.post('/admin-portal/', new_place_data)
+        self.assertEqual(res_create.status_code, 302)
+
+        created_facility = ParkingFacility.objects.get(slug='aerocity-worldmark-skydeck')
+        self.assertEqual(created_facility.name, 'Aerocity Worldmark SkyDeck Parking')
+        self.assertEqual(created_facility.slots.count(), 18) # 3 floors * 6 slots = 18 bays
+        self.assertTrue(len(created_facility.gallery_images) >= 2)
+
+        # 2. Rewrite / Edit Option for Old Place
+        edit_data = {
+            'name': 'Aerocity Worldmark SkyDeck Parking (Renovated & Expanded)',
+            'slug': 'aerocity-worldmark-skydeck',
+            'tagline': 'Upgraded 24/7 luxury parking with premium EV lounge',
+            'address': 'Asset Area 8, Hospitality District, Aerocity',
+            'city': 'New Delhi (Delhi)',
+            'postal_code': '110037',
+            'latitude': 28.5510,
+            'longitude': 77.1210,
+            'hourly_rate': Decimal('90.00'), # Price rewritten
+            'daily_rate': Decimal('500.00'),
+            'image_url': 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a',
+            'gallery_urls': 'https://images.unsplash.com/photo-1590674899484-d5640e854abe',
+            'description': 'Newly renovated luxury multi-level parking deck with biometric barriers and VIP valet services.',
+            'amenities_text': 'Covered Parking, 24/7 CCTV, VIP Valet, Fast EV Charging, Car Spa',
+            'ev_charging_available': True,
+            'ev_charger_types': 'CCS2 120kW Supercharger',
+            'is_24_7': True,
+            'is_active': True,
+            'is_featured': True,
+            'cancellation_hours_before': 2,
+        }
+        res_edit = self.client.post(f'/admin-portal/facility/{created_facility.id}/edit/', edit_data)
+        self.assertEqual(res_edit.status_code, 302)
+
+        created_facility.refresh_from_db()
+        self.assertEqual(created_facility.name, 'Aerocity Worldmark SkyDeck Parking (Renovated & Expanded)')
+        self.assertEqual(created_facility.hourly_rate, Decimal('90.00'))
+        self.assertIn('Car Spa', created_facility.amenities)
+
+        # 3. Verify SQL Export Download View
+        res_sql = self.client.get('/admin-portal/sql-export/download/')
+        self.assertEqual(res_sql.status_code, 200)
+        self.assertEqual(res_sql['Content-Type'], 'application/sql')
+        sql_content = res_sql.content.decode('utf-8')
+        self.assertIn('Aerocity Worldmark SkyDeck Parking (Renovated & Expanded)', sql_content)
+        self.assertIn('90.00', sql_content)

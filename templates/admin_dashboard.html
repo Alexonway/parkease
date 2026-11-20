@@ -128,84 +128,226 @@
         </div>
     </div>
 
+    <!-- SQL Database Foundation & Export Card -->
+    <div class="bg-forest-950 text-white rounded-3xl p-6 sm:p-8 border border-forest-900 shadow-classic flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="space-y-1">
+            <div class="inline-flex items-center space-x-2 px-2.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-800 text-emerald-400 text-[11px] font-semibold">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                <span>AUTOMATIC DATABASE SYNCHRONIZATION</span>
+            </div>
+            <h3 class="font-classic text-xl font-bold">SQL Database Storage & Export Script</h3>
+            <p class="text-xs text-slate-300 max-w-2xl">
+                Every newly registered place and rewritten facility is automatically exported to <strong>parkease_facilities_export.sql</strong>.
+                Compatible with Microsoft SQL Server 2025, Azure Data Studio, and MySQL.
+            </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+            <a href="{% url 'admin_sql_sync' %}" class="px-4 py-2.5 rounded-xl bg-forest-900 hover:bg-forest-800 text-white text-xs font-semibold border border-forest-700 transition-colors flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                Re-Sync SQL File
+            </a>
+            <a href="{% url 'admin_sql_export' %}" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition-colors flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                Download SQL Script (.sql)
+            </a>
+        </div>
+    </div>
+
     <!-- Facility Management & Add New Facility Form -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        <!-- Managed Facilities List -->
-        <div class="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-classic space-y-4">
-            <h3 class="font-classic text-xl font-bold text-forest-950 border-b border-slate-100 pb-3">
-                Managed Facilities
-            </h3>
+        
+        <!-- Managed Facilities List (With Rewrite / Edit Options) -->
+        <div class="lg:col-span-6 bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-classic space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="font-classic text-xl font-bold text-forest-950">
+                    Managed Facilities ({{ facilities.count }})
+                </h3>
+                <span class="text-[11px] text-slate-400 font-medium">Click Rewrite to edit photos & details</span>
+            </div>
 
             <div class="divide-y divide-slate-100 text-xs">
                 {% for f in facilities %}
-                    <div class="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/60 p-2 rounded-2xl transition-colors">
                         <div class="flex items-center space-x-3">
-                            <img src="{{ f.image_url }}" alt="{{ f.name }}" class="w-12 h-12 rounded-xl object-cover">
+                            <div class="relative w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-slate-200 shadow-xs">
+                                <img src="{{ f.image_url }}" alt="{{ f.name }}" class="w-full h-full object-cover">
+                            </div>
                             <div>
-                                <h4 class="font-bold text-sm text-slate-900">{{ f.name }}</h4>
-                                <p class="text-slate-400">{{ f.city }} • {{ CURRENCY_SYMBOL }}{{ f.hourly_rate }}/hr • {{ f.slots.count }} Total Bays</p>
+                                <div class="flex items-center gap-1.5">
+                                    <h4 class="font-bold text-sm text-slate-900">{{ f.name }}</h4>
+                                    {% if f.is_featured %}
+                                        <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200">Featured</span>
+                                    {% endif %}
+                                </div>
+                                <p class="text-slate-400 mt-0.5">{{ f.city }} • {{ CURRENCY_SYMBOL }}{{ f.hourly_rate }}/hr • {{ f.slots.count }} Total Bays</p>
+                                {% if f.gallery_images %}
+                                    <span class="text-[10px] text-emerald-600 font-medium">+{{ f.gallery_images|length }} Gallery Photos</span>
+                                {% endif %}
                             </div>
                         </div>
 
-                        <div class="flex items-center space-x-2">
-                            <span class="px-2.5 py-1 rounded text-[10px] font-bold {% if f.is_active %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-rose-50 text-rose-700 border border-rose-200{% endif %}">
-                                {% if f.is_active %}Active & Live{% else %}Deactivated{% endif %}
-                            </span>
-                            <a href="{% url 'facility_detail' slug=f.slug %}" class="px-3 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] transition-colors">
-                                View Layout
+                        <div class="flex flex-wrap items-center gap-1.5 shrink-0">
+                            <!-- Rewrite / Edit Button -->
+                            <a href="{% url 'admin_facility_edit' facility_id=f.id %}" class="px-3 py-1.5 rounded-lg bg-forest-900 hover:bg-forest-950 text-white font-semibold text-[11px] transition-colors flex items-center gap-1 shadow-xs">
+                                <svg class="w-3 h-3 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                Rewrite / Edit
+                            </a>
+
+                            <!-- Toggle Status -->
+                            <a href="{% url 'admin_facility_toggle' facility_id=f.id %}" class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-colors {% if f.is_active %}bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100{% else %}bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100{% endif %}">
+                                {% if f.is_active %}Active{% else %}Deactivated{% endif %}
+                            </a>
+
+                            <a href="{% url 'facility_detail' slug=f.slug %}" target="_blank" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] transition-colors">
+                                View &rarr;
                             </a>
                         </div>
                     </div>
+                {% empty %}
+                    <p class="text-slate-400 py-6 text-center italic">No facilities created yet.</p>
                 {% endfor %}
             </div>
         </div>
 
-        <!-- Add Facility Form -->
-        <div class="lg:col-span-5 bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-classic space-y-4">
-            <h3 class="font-classic text-xl font-bold text-forest-950 border-b border-slate-100 pb-3">
-                Register New Parking Facility
-            </h3>
+        <!-- Register New Parking Facility Form (With Multi-Images & Full Details) -->
+        <div class="lg:col-span-6 bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-classic space-y-4">
+            <div class="border-b border-slate-100 pb-3">
+                <h3 class="font-classic text-xl font-bold text-forest-950">
+                    Register New Parking Facility
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">Upload photos from PC or paste web links. All details are saved and synced to the SQL file.</p>
+            </div>
 
-            <form method="POST" class="space-y-3 text-xs">
+            <form method="POST" enctype="multipart/form-data" class="space-y-3.5 text-xs">
                 {% csrf_token %}
+
+                <!-- Basic Identification -->
                 <div>
                     <label class="block font-bold uppercase text-slate-600 mb-1">Facility Name *</label>
                     {{ facility_form.name }}
                 </div>
-                <div>
-                    <label class="block font-bold uppercase text-slate-600 mb-1">URL Identifier (Slug) *</label>
-                    {{ facility_form.slug }}
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold uppercase text-slate-600 mb-1">URL Identifier (Slug) *</label>
+                        {{ facility_form.slug }}
+                    </div>
+                    <div>
+                        <label class="block font-bold uppercase text-slate-600 mb-1">Tagline</label>
+                        {{ facility_form.tagline }}
+                    </div>
                 </div>
+
                 <div>
-                    <label class="block font-bold uppercase text-slate-600 mb-1">Address *</label>
+                    <label class="block font-bold uppercase text-slate-600 mb-1">Full Address *</label>
                     {{ facility_form.address }}
                 </div>
+
                 <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label class="block font-bold uppercase text-slate-600 mb-1">City *</label>
+                        <label class="block font-bold uppercase text-slate-600 mb-1">City / State *</label>
                         {{ facility_form.city }}
                     </div>
                     <div>
-                        <label class="block font-bold uppercase text-slate-600 mb-1">Hourly Tariff ($) *</label>
-                        {{ facility_form.hourly_rate }}
+                        <label class="block font-bold uppercase text-slate-600 mb-1">Postal Code</label>
+                        {{ facility_form.postal_code }}
                     </div>
                 </div>
-                <div>
-                    <label class="block font-bold uppercase text-slate-600 mb-1">Hero Image URL</label>
-                    {{ facility_form.image_url }}
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold uppercase text-slate-600 mb-1">Latitude (GPS)</label>
+                        {{ facility_form.latitude }}
+                    </div>
+                    <div>
+                        <label class="block font-bold uppercase text-slate-600 mb-1">Longitude (GPS)</label>
+                        {{ facility_form.longitude }}
+                    </div>
                 </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold uppercase text-slate-600 mb-1">Hourly Tariff (₹) *</label>
+                        {{ facility_form.hourly_rate }}
+                    </div>
+                    <div>
+                        <label class="block font-bold uppercase text-slate-600 mb-1">Daily Tariff (₹) *</label>
+                        {{ facility_form.daily_rate }}
+                    </div>
+                </div>
+
+                <!-- Photos Section (Files from PC + Web URLs) -->
+                <div class="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2.5">
+                    <span class="block font-bold uppercase text-slate-700 text-[11px] tracking-wide">Place Photos & Visuals</span>
+                    
+                    <div>
+                        <label class="block font-semibold text-slate-600 mb-1">1. Upload Main Hero Photo from Computer:</label>
+                        {{ facility_form.image_file }}
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-600 mb-1">Or Paste Hero Photo URL:</label>
+                        {{ facility_form.image_url }}
+                    </div>
+
+                    <div class="pt-1">
+                        <label class="block font-semibold text-slate-600 mb-1">2. Upload Additional Gallery Photos (Multiple Files):</label>
+                        {{ facility_form.gallery_files }}
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-600 mb-1">Or Additional Photo URLs (Comma or Newline separated):</label>
+                        {{ facility_form.gallery_urls }}
+                    </div>
+                </div>
+
+                <!-- Description & Amenities -->
+                <div>
+                    <label class="block font-bold uppercase text-slate-600 mb-1">Description</label>
+                    {{ facility_form.description }}
+                </div>
+
                 <div>
                     <label class="block font-bold uppercase text-slate-600 mb-1">Amenities (Comma-separated)</label>
                     {{ facility_form.amenities_text }}
                 </div>
 
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold uppercase text-slate-600 mb-1">EV Charger Specs</label>
+                        {{ facility_form.ev_charger_types }}
+                    </div>
+                    <div class="flex items-center space-x-2 pt-4">
+                        {{ facility_form.ev_charging_available }}
+                        <span class="font-bold text-slate-700">EV Charging Available</span>
+                    </div>
+                </div>
+
+                <!-- Auto-Provisioning Decks & Bays -->
+                <div class="p-3 bg-emerald-50/60 rounded-2xl border border-emerald-200/60 space-y-2">
+                    <span class="block font-bold uppercase text-emerald-900 text-[11px] tracking-wide">Automatic Bay Provisioning</span>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block font-semibold text-slate-600 mb-1">Decks / Floors</label>
+                            {{ facility_form.floors_count }}
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-slate-600 mb-1">Slots per Deck</label>
+                            {{ facility_form.slots_per_floor }}
+                        </div>
+                    </div>
+                </div>
+
                 <div class="pt-2">
-                    <button type="submit" name="create_facility" class="w-full py-3 rounded-xl bg-forest-900 text-white font-semibold text-xs hover:bg-forest-950 transition-colors shadow-xs">
-                        Create Facility & Auto-Provision Bays
+                    <button type="submit" name="create_facility" class="w-full py-3.5 rounded-xl bg-forest-900 text-white font-semibold text-xs hover:bg-forest-950 transition-colors shadow-classic flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                        Register Facility & Save to SQL File
                     </button>
                 </div>
             </form>
         </div>
+
     </div>
 
 </div>
