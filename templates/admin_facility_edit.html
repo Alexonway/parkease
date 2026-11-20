@@ -32,13 +32,33 @@
     <form method="POST" enctype="multipart/form-data" class="space-y-8 bg-white rounded-3xl p-6 sm:p-10 border border-slate-200 shadow-classic">
         {% csrf_token %}
 
+        <!-- Red Alert Error Popup Box -->
+        {% if form.errors %}
+            <div class="bg-rose-50 border-2 border-rose-500 rounded-2xl p-5 text-rose-900 shadow-md space-y-2 animate-shake">
+                <div class="flex items-center gap-2 font-bold text-sm text-rose-700">
+                    <svg class="w-5 h-5 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    <span>Please correct the errors in the red boxes below:</span>
+                </div>
+                <ul class="list-disc list-inside text-xs space-y-1 text-rose-800 font-semibold pl-1">
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <li>{{ field.label }}: {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
         <!-- SECTION 1: Place Images & Visuals -->
         <div class="space-y-4 border-b border-slate-100 pb-8">
             <div class="flex items-center gap-2">
                 <span class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm">1</span>
                 <div>
                     <h3 class="font-classic text-lg font-bold text-forest-950">Place Images & Visuals</h3>
-                    <p class="text-xs text-slate-500">Upload high-resolution place photos from your computer or provide web image URLs.</p>
+                    <p class="text-xs text-slate-500">Upload high-resolution place photos from your computer or provide web image URLs. (Optional)</p>
                 </div>
             </div>
 
@@ -103,43 +123,46 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Facility Name *</label>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Facility Name * <span class="text-rose-600 text-[10px] font-semibold">(Required)</span></label>
                     {{ form.name }}
+                    {% if form.name.errors %}<p class="text-rose-600 text-[11px] font-bold mt-1">{{ form.name.errors.0 }}</p>{% endif %}
                 </div>
                 <div>
-                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">URL Identifier (Slug) *</label>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">URL Identifier (Slug) <span class="text-slate-400 text-[10px] lowercase font-normal">(Optional — auto-generated from name)</span></label>
                     {{ form.slug }}
                 </div>
             </div>
 
             <div>
-                <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Tagline / Catchphrase</label>
+                <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Tagline / Catchphrase <span class="text-slate-400 text-[10px] lowercase font-normal">(Optional)</span></label>
                 {{ form.tagline }}
             </div>
 
             <div>
-                <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Full Street / Sector Address *</label>
+                <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Full Street / Sector Address * <span class="text-rose-600 text-[10px] font-semibold">(Required)</span></label>
                 {{ form.address }}
+                {% if form.address.errors %}<p class="text-rose-600 text-[11px] font-bold mt-1">{{ form.address.errors.0 }}</p>{% endif %}
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">City / Region (e.g. New Delhi, Noida, Gurugram) *</label>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">City / Region (e.g. New Delhi, Noida, Gurugram) * <span class="text-rose-600 text-[10px] font-semibold">(Required)</span></label>
                     {{ form.city }}
+                    {% if form.city.errors %}<p class="text-rose-600 text-[11px] font-bold mt-1">{{ form.city.errors.0 }}</p>{% endif %}
                 </div>
                 <div>
-                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Postal Code (PIN Code)</label>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Postal Code (PIN Code) <span class="text-slate-400 text-[10px] lowercase font-normal">(Optional)</span></label>
                     {{ form.postal_code }}
                 </div>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Latitude (GPS) *</label>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Latitude (GPS) <span class="text-slate-400 text-[10px] lowercase font-normal">(Optional)</span></label>
                     {{ form.latitude }}
                 </div>
                 <div>
-                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Longitude (GPS) *</label>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Longitude (GPS) <span class="text-slate-400 text-[10px] lowercase font-normal">(Optional)</span></label>
                     {{ form.longitude }}
                 </div>
             </div>
@@ -157,15 +180,15 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Hourly Tariff (₹) *</label>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Hourly Tariff (₹) <span class="text-slate-400 text-[10px] lowercase font-normal">(Optional — defaults to ₹50)</span></label>
                     {{ form.hourly_rate }}
                 </div>
                 <div>
-                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Full Day Tariff (₹) *</label>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Full Day Tariff (₹) <span class="text-slate-400 text-[10px] lowercase font-normal">(Optional — defaults to ₹300)</span></label>
                     {{ form.daily_rate }}
                 </div>
                 <div>
-                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Free Cancellation Window (Hours)</label>
+                    <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Free Cancellation Window (Hours) <span class="text-slate-400 text-[10px] lowercase font-normal">(Optional)</span></label>
                     {{ form.cancellation_hours_before }}
                 </div>
             </div>
@@ -182,12 +205,12 @@
             </div>
 
             <div>
-                <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Detailed Description</label>
+                <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Detailed Description <span class="text-slate-400 text-[10px] lowercase font-normal">(Optional — auto-generated if empty)</span></label>
                 {{ form.description }}
             </div>
 
             <div>
-                <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Amenities (Comma-separated)</label>
+                <label class="block font-bold text-xs uppercase text-slate-700 mb-1">Amenities (Comma-separated) <span class="text-slate-400 text-[10px] lowercase font-normal">(Optional)</span></label>
                 {{ form.amenities_text }}
                 <p class="text-[11px] text-slate-400 mt-1">Example: Covered Parking, 24/7 CCTV, Fast EV Charging, Valet, Car Wash, Wheelchair Accessible</p>
             </div>

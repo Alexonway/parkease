@@ -1,5 +1,8 @@
 from django import forms
 from django.contrib.auth.models import User
+from django.utils.text import slugify
+from django.utils import timezone
+from decimal import Decimal
 from .models import UserProfile, ContactMessage, ParkingFacility, ParkingSlot, Review
 
 class UserRegistrationForm(forms.ModelForm):
@@ -124,16 +127,24 @@ class FacilityAdminForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Make non-essential fields completely optional with smart defaults
+        self.fields['slug'].required = False
+        self.fields['tagline'].required = False
+        self.fields['postal_code'].required = False
+        self.fields['image_url'].required = False
+        self.fields['description'].required = False
         self.fields['latitude'].required = False
         self.fields['longitude'].required = False
         self.fields['latitude'].initial = 28.5355
         self.fields['longitude'].initial = 77.2410
+        self.fields['hourly_rate'].required = False
+        self.fields['hourly_rate'].initial = 50.00
+        self.fields['daily_rate'].required = False
+        self.fields['daily_rate'].initial = 300.00
         self.fields['cancellation_hours_before'].required = False
         self.fields['cancellation_hours_before'].initial = 2
         self.fields['ev_charger_types'].required = False
         self.fields['ev_charger_types'].initial = "Type 2 & CCS2 Fast Charge"
-        self.fields['hourly_rate'].initial = 50.00
-        self.fields['daily_rate'].initial = 300.00
 
         if self.instance and self.instance.pk:
             if self.instance.amenities:
@@ -143,6 +154,45 @@ class FacilityAdminForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
+        name = (cleaned_data.get('name') or '').strip()
+        slug = (cleaned_data.get('slug') or '').strip()
+
+        # 1. Automatic Slug Generation if empty or invalid
+        if not slug and name:
+            slug = slugify(name)
+        elif slug:
+            slug = slugify(slug)
+
+        if not slug:
+            slug = f"facility-{timezone.now().strftime('%y%m%d%H%M%S')}"
+
+        # 2. Slug Deduplication
+        base_slug = slug
+        counter = 1
+        query = ParkingFacility.objects.filter(slug=slug)
+        if self.instance and self.instance.pk:
+            query = query.exclude(pk=self.instance.pk)
+        while query.exists():
+            counter += 1
+            slug = f"{base_slug}-{counter}"
+            query = ParkingFacility.objects.filter(slug=slug)
+            if self.instance and self.instance.pk:
+                query = query.exclude(pk=self.instance.pk)
+
+        cleaned_data['slug'] = slug
+
+        # 3. Intelligent default values for all optional fields
+        city = (cleaned_data.get('city') or '').strip() or 'Delhi NCR'
+        if not cleaned_data.get('tagline'):
+            cleaned_data['tagline'] = f"Secure & convenient parking in {city}"
+        if not cleaned_data.get('description'):
+            cleaned_data['description'] = f"Modern multi-level parking facility in {city} with 24/7 CCTV surveillance, automated barrier entry, and high-speed EV charging bays."
+        if not cleaned_data.get('postal_code'):
+            cleaned_data['postal_code'] = "110001"
+        if not cleaned_data.get('hourly_rate'):
+            cleaned_data['hourly_rate'] = Decimal("50.00")
+        if not cleaned_data.get('daily_rate'):
+            cleaned_data['daily_rate'] = Decimal("300.00")
         if not cleaned_data.get('latitude'):
             cleaned_data['latitude'] = 28.5355
         if not cleaned_data.get('longitude'):
@@ -151,4 +201,5 @@ class FacilityAdminForm(forms.ModelForm):
             cleaned_data['cancellation_hours_before'] = 2
         if not cleaned_data.get('ev_charger_types'):
             cleaned_data['ev_charger_types'] = "Type 2 & CCS2 Fast Charge"
+
         return cleaned_data

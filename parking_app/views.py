@@ -595,6 +595,12 @@ def admin_dashboard_view(request):
                 f"Facility '{new_facility.name}' registered with {floors_count * slots_per_floor} bays, photos stored, and automatically exported to SQL file!"
             )
             return redirect('admin_dashboard')
+        else:
+            error_msgs = []
+            for field, errs in facility_form.errors.items():
+                label = facility_form.fields.get(field) and facility_form.fields[field].label or field.replace('_', ' ').capitalize()
+                error_msgs.append(f"{label}: {', '.join(errs)}")
+            messages.error(request, f"Could not create facility. Please check the red alert box below: {'; '.join(error_msgs)}")
 
     context = {
         'facilities': facilities,
@@ -643,6 +649,12 @@ def admin_facility_edit_view(request, facility_id):
                 f"Facility '{updated_facility.name}' rewritten and updated successfully! Changes saved to SQL file."
             )
             return redirect('admin_dashboard')
+        else:
+            error_msgs = []
+            for field, errs in form.errors.items():
+                label = form.fields.get(field) and form.fields[field].label or field.replace('_', ' ').capitalize()
+                error_msgs.append(f"{label}: {', '.join(errs)}")
+            messages.error(request, f"Could not rewrite facility. Please check the red alert box below: {'; '.join(error_msgs)}")
     else:
         form = FacilityAdminForm(instance=facility)
 
