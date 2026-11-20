@@ -189,7 +189,7 @@
                                 <p class="text-slate-400">{{ rw.description }} • {{ rw.created_at|date:"M d, Y" }}</p>
                             </div>
                             <span class="font-mono font-bold {% if rw.points > 0 %}text-emerald-600{% else %}text-rose-600{% endif %}">
-                                {{ rw.points:+d }} pts
+                                {% if rw.points > 0 %}+{{ rw.points }}{% else %}{{ rw.points }}{% endif %} pts
                             </span>
                         </div>
                     {% empty %}
